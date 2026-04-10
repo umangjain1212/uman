@@ -1,0 +1,26 @@
+{
+  "overview": "Farm72 is a premium organic e-commerce site selling pure cold-pressed oils (Coconut, Sesame, Mustard, and more) using traditional Kacchi Ghani methods. Features a modern hero carousel, product catalog, cart system, Stripe checkout, and WhatsApp order backup.",
+  "features": [
+    "Hero carousel with organic farming imagery",
+    "5 product catalog (Coconut Oil, Sesame Oil, Black & Yellow Mustard Oil, Sugarcane Juice)",
+    "Cart system with real-time badge and localStorage persistence",
+    "Checkout with Stripe payment and WhatsApp backup order",
+    "User login via Internet Identity (checkout-only)",
+    "Product detail pages with quantity selector",
+    "About page (cold-pressed vs expeller comparison)",
+    "Contact page with form and location info",
+    "Organic green theme, responsive design, hover effects"
+  ],
+  "category": "e-commerce",
+  "tags": [
+    "e-commerce",
+    "organic",
+    "food",
+    "oils",
+    "farm",
+    "cart",
+    "stripe",
+    "whatsapp"
+  ],
+  "last_updated": "2026-04-10T07:47:17.676Z"
+}
