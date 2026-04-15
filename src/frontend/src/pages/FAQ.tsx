@@ -1,10 +1,5 @@
-import { createActor } from "@/backend";
-import type { FaqItem } from "@/backend.d";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useActor } from "@caffeineai/core-infrastructure";
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -15,7 +10,15 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
-// Static fallback array — used while loading or if backend returns empty
+type FaqItem = {
+  id: string;
+  displayOrder: bigint;
+  isVisible: boolean;
+  question: string;
+  answer: string;
+};
+
+// Static FAQ array — all questions hardcoded, no backend dependency
 const staticFaqs: FaqItem[] = [
   {
     id: "1",
@@ -141,23 +144,6 @@ const staticFaqs: FaqItem[] = [
   },
 ];
 
-function useFaqItems() {
-  const { actor, isFetching } = useActor(createActor);
-  return useQuery<FaqItem[]>({
-    queryKey: ["faqItems"],
-    queryFn: async () => {
-      if (!actor) return staticFaqs;
-      const items = await actor.getFaqItems();
-      if (!items || items.length === 0) return staticFaqs;
-      return [...items]
-        .filter((f) => f.isVisible)
-        .sort((a, b) => Number(a.displayOrder) - Number(b.displayOrder));
-    },
-    enabled: !!actor && !isFetching,
-    placeholderData: staticFaqs,
-  });
-}
-
 function FAQItem({
   faq,
   index,
@@ -221,7 +207,7 @@ function FAQItem({
 }
 
 export function FAQ() {
-  const { data: faqs = staticFaqs, isLoading } = useFaqItems();
+  const faqs = staticFaqs;
 
   // Split: first 12 = oil/general FAQs, rest = Buransh Juice FAQs
   const mainFaqs = faqs.filter((_, i) => i < 12);
@@ -264,9 +250,7 @@ export function FAQ() {
               out on WhatsApp — we're happy to help.
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              {isLoading
-                ? "Loading questions…"
-                : `${faqs.length} questions answered`}
+              {faqs.length} questions answered
             </p>
           </motion.div>
         </div>
@@ -275,53 +259,35 @@ export function FAQ() {
       {/* ── FAQ List ── */}
       <section className="py-14">
         <div className="container mx-auto px-4 sm:px-6 max-w-3xl">
-          {isLoading ? (
-            <div className="space-y-3" data-ocid="faq.loading_state">
-              {["sk1", "sk2", "sk3", "sk4", "sk5", "sk6"].map((skId) => (
-                <div
-                  key={skId}
-                  className="bg-card rounded-xl border border-border p-5 space-y-2"
+          <div className="space-y-3" data-ocid="faq.list">
+            {mainFaqs.map((faq, i) => (
+              <FAQItem key={faq.id} faq={faq} index={i} />
+            ))}
+
+            {/* ── Buransh Juice FAQs ── */}
+            {buranshFaqs.length > 0 && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="pt-4"
                 >
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-1/4" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-3" data-ocid="faq.list">
-              {mainFaqs.map((faq, i) => (
-                <FAQItem key={faq.id} faq={faq} index={i} />
-              ))}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                      🌸 Buransh Juice — Himalayan FAQs
+                    </span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+                </motion.div>
 
-              {/* ── Buransh Juice FAQs ── */}
-              {buranshFaqs.length > 0 && (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0, y: 16 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className="pt-4"
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="h-px flex-1 bg-border" />
-                      <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                        🌸 Buransh Juice — Himalayan FAQs
-                      </span>
-                      <div className="h-px flex-1 bg-border" />
-                    </div>
-                  </motion.div>
-
-                  {buranshFaqs.map((faq, i) => (
-                    <FAQItem
-                      key={faq.id}
-                      faq={faq}
-                      index={mainFaqs.length + i}
-                    />
-                  ))}
-                </>
-              )}
-            </div>
-          )}
+                {buranshFaqs.map((faq, i) => (
+                  <FAQItem key={faq.id} faq={faq} index={mainFaqs.length + i} />
+                ))}
+              </>
+            )}
+          </div>
 
           {/* ── CTA ── */}
           <motion.div
