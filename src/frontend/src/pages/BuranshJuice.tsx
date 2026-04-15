@@ -287,7 +287,7 @@ export function BuranshJuice() {
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-primary-foreground mb-4">
             Taste the Himalayas
           </h2>
-          <p className="text-primary-foreground/90 text-lg mb-8 max-w-md mx-auto">
+          <p className="text-white text-lg mb-8 max-w-md mx-auto">
             Order Farm72 Buransh Juice today — pure, cooling, and naturally
             Himalayan.
           </p>

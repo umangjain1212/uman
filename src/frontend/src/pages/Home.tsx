@@ -15,31 +15,41 @@ import {
 import { motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// hero1 = uploaded Farm72 bottles triptych
-// hero2 = uploaded four bottles lineup
-// hero3 = uploaded mustard field with bottle
-// hero4 = uploaded coconuts with palm leaves
-// hero5 = uploaded red flowers
 const heroSlides = [
   {
     imageUrl: "/assets/images/hero1.png",
     alt: "Farm72 cold pressed oil bottles",
+    title: "Pure Cold Pressed Oils",
+    subtitle: "Healthy Living Starts Here",
+    highlight: "Pressed",
   },
   {
     imageUrl: "/assets/images/hero2.png",
     alt: "Farm72 product lineup — Mustard, Coconut, Sesame oils",
+    title: "From Pure Seeds",
+    subtitle: "Nothing Added. Nothing Removed",
+    highlight: "Pure",
   },
   {
     imageUrl: "/assets/images/hero3.png",
     alt: "Mustard field at sunrise with Farm72 bottle",
+    title: "Wood Pressed Tradition",
+    subtitle: "Slow. Natural. Powerful",
+    highlight: "Tradition",
   },
   {
     imageUrl: "/assets/images/hero4.jpg",
-    alt: "Fresh coconuts with palm leaves",
+    alt: "Farm72 natural organic ingredients",
+    title: "Himalayan Buransh Juice",
+    subtitle: "Pure. Refreshing. Naturally Powerful",
+    highlight: "Buransh",
   },
   {
     imageUrl: "/assets/images/hero5.jpg",
-    alt: "Farm72 natural organic ingredients",
+    alt: "Fresh coconuts with palm leaves",
+    title: "Crafted for Purity",
+    subtitle: "Premium Quality Oils",
+    highlight: "Purity",
   },
 ];
 
@@ -128,51 +138,67 @@ function HeroCarousel() {
       {/* Dark overlay */}
       <div className="absolute inset-0 hero-overlay z-20" />
 
-      {/* Centered overlay content */}
-      <div className="relative z-30 h-full flex flex-col items-center justify-center text-center px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 28 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="max-w-3xl"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-foreground/15 backdrop-blur-sm border border-primary-foreground/30 text-primary-foreground text-sm font-medium mb-6">
-            <Sprout className="w-4 h-4 text-accent" />
-            Farm72 · Pure Cold Pressed Oil &amp; Buransh Juice
-          </div>
+      {/* Left-aligned overlay content */}
+      <div className="absolute inset-0 z-30 flex items-center">
+        <div className="w-full px-8 md:px-16 lg:px-24">
+          <motion.div
+            key={current}
+            initial={{ opacity: 0, x: -32 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.65, ease: [0.4, 0, 0.2, 1] }}
+            className="max-w-sm md:max-w-md lg:max-w-lg bg-black/10 backdrop-blur-sm border border-white/15 rounded-2xl p-8 md:p-10 shadow-xl"
+          >
+            {/* Eyebrow label */}
+            <p className="text-amber-400/80 text-xs uppercase tracking-widest font-medium mb-4 flex items-center gap-2">
+              <Sprout className="w-3.5 h-3.5" />
+              Farm72 · Pure &amp; Natural
+            </p>
 
-          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-primary-foreground leading-tight mb-4">
-            Pure Cold Pressed Oil &amp; Buransh Juice
-            <br />
-            <span className="text-accent">for Healthy Living</span>
-          </h1>
+            {/* Title with highlighted word */}
+            <h1 className="font-['Playfair_Display'] text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight">
+              {(() => {
+                const slide = heroSlides[current];
+                const parts = slide.title.split(slide.highlight);
+                return (
+                  <>
+                    {parts[0]}
+                    <span style={{ color: "#D4A847" }}>{slide.highlight}</span>
+                    {parts[1]}
+                  </>
+                );
+              })()}
+            </h1>
 
-          <p className="text-white text-lg mb-8 max-w-xl mx-auto leading-relaxed font-medium">
-            100% Natural&nbsp;&nbsp;|&nbsp;&nbsp;Chemical
-            Free&nbsp;&nbsp;|&nbsp;&nbsp;No Preservatives
-            Added&nbsp;&nbsp;|&nbsp;&nbsp;Purely Natural
-          </p>
+            {/* Decorative divider + subtitle */}
+            <div className="mt-4 mb-6">
+              <div className="w-12 h-px bg-amber-400 mb-3" />
+              <p className="text-white/90 text-xs sm:text-sm uppercase tracking-widest font-medium">
+                {heroSlides[current].subtitle}
+              </p>
+            </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/shop">
-              <Button
-                className="btn-primary text-base px-8 py-3 shadow-elevated"
-                data-ocid="hero-shop-now"
-              >
-                Shop Now
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-            <Link to="/about">
-              <Button
-                variant="outline"
-                className="bg-primary-foreground/10 border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/20 text-base px-8 py-3"
-              >
-                Our Story
-              </Button>
-            </Link>
-          </div>
-        </motion.div>
+            {/* CTA Buttons */}
+            <div className="flex gap-3 flex-wrap">
+              <Link to="/shop">
+                <button
+                  type="button"
+                  className="bg-white text-green-900 font-bold text-sm px-6 py-2.5 rounded-full hover:bg-amber-400 hover:text-white transition-all duration-200"
+                  data-ocid="hero-shop-now"
+                >
+                  SHOP NOW →
+                </button>
+              </Link>
+              <Link to="/about">
+                <button
+                  type="button"
+                  className="border border-white/60 text-white text-sm font-medium px-6 py-2.5 rounded-full hover:bg-white/20 transition-all duration-200"
+                >
+                  OUR STORY
+                </button>
+              </Link>
+            </div>
+          </motion.div>
+        </div>
       </div>
 
       {/* Slide indicator dots */}
