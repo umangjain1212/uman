@@ -86,3 +86,14 @@
 
 Intentional dark palette: background `0.16 0.04 142` (deep forest), card `0.22 0.05 142` (slightly lighter forest), text `0.95 0.01 162` (cream). All OKLCH green hue 142° maintained across light/dark for brand coherence. Shadows remain same OKLCH, system respects prefers-color-scheme.
 
+## Admin Panel (Dashboard)
+
+**Purpose** | Owner-only dashboard for product/order/coupon management. Productive CRUD interface prioritizing data clarity and information density over showroom aesthetics.
+**Layout** | Responsive sidebar nav (dark forest primary, left border accent on active), cream content area with stat cards (4-col grid), data tables (striped rows, hover lift), form pages with inline validation.
+**Sidebar Items** | Dashboard, Products, Orders, Coupons, Inventory, Content, Settings — each nav item has icon + label, 32px icon size, active state = accent green border-l-4 + bg lift.
+**Stats Cards** | Metric card components: icon top-left, value (font-display text-2xl bold primary), label (text-sm muted). Hover: shadow-card lift.
+**Data Tables** | `.admin-table`: striped alternating bg (card / muted/50), hover states with bg-muted/50, border-b dividers, compact px-4 py-3 cells. Action columns: edit (green accent), delete (red destructive), view (blue primary).
+**Forms** | Label (font-medium text-sm), input (bg-input border-border focus:ring-primary/50), help text (text-xs muted-foreground), inline validation (red destructive border on error).
+**Motion** | Functional only: 250ms smooth transition on sidebar hover, 300ms fade on table row hover, no pop/scale choreography.
+**Mobile** | Sidebar hidden by default (hamburger toggle), full-width content, single-column stat cards, responsive table horizontal scroll on sm screens.
+

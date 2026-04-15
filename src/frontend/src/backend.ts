@@ -89,36 +89,74 @@ export class ExternalBlob {
         return this;
     }
 }
-export interface Product {
+export type Timestamp = bigint;
+export interface TransformationOutput {
+    status: bigint;
+    body: Uint8Array;
+    headers: Array<http_header>;
+}
+export interface AnalyticsSummary {
+    totalOrders: bigint;
+    pendingOrders: bigint;
+    totalRevenue: bigint;
+    deliveredOrders: bigint;
+}
+export interface OrderItem {
+    variantLabel: string;
+    productId: string;
+    productName: string;
+    variantId: string;
+    quantity: bigint;
+    unitPrice: bigint;
+}
+export interface OrderInput {
+    customerName: string;
+    paymentMethod: PaymentMethod;
+    email: string;
+    totalAmount: bigint;
+    address: string;
+    phone: string;
+    items: Array<OrderItem>;
+}
+export interface TopProduct {
+    revenue: bigint;
+    productId: string;
+    productName: string;
+    orderCount: bigint;
+}
+export interface HeroSlideInput {
     id: string;
-    name: string;
-    description: string;
+    title: string;
+    displayOrder: bigint;
     imageUrl: string;
-    category: string;
-    benefits: Array<string>;
-    price: bigint;
+    isVisible: boolean;
+    subtitle: string;
 }
 export interface ContactMessage {
     name: string;
     email: string;
     message: string;
 }
-export interface TransformationOutput {
-    status: bigint;
-    body: Uint8Array;
-    headers: Array<http_header>;
-}
-export interface ShoppingItem {
-    productName: string;
-    currency: string;
-    quantity: bigint;
-    priceInCents: bigint;
-    productDescription: string;
-}
 export interface TransformationInput {
     context: Uint8Array;
     response: http_request_result;
 }
+export type CouponValidation = {
+    __kind__: "Exhausted";
+    Exhausted: null;
+} | {
+    __kind__: "Inactive";
+    Inactive: null;
+} | {
+    __kind__: "NotFound";
+    NotFound: null;
+} | {
+    __kind__: "Valid";
+    Valid: bigint;
+} | {
+    __kind__: "Expired";
+    Expired: null;
+};
 export type StripeSessionStatus = {
     __kind__: "completed";
     completed: {
@@ -135,6 +173,49 @@ export interface StripeConfiguration {
     allowedCountries: Array<string>;
     secretKey: string;
 }
+export interface ProductInput {
+    id: string;
+    displayOrder: bigint;
+    name: string;
+    description: string;
+    variants: Array<ProductVariant>;
+    imageUrl: string;
+    shortDescription: string;
+    isVisible: boolean;
+    category: string;
+    benefits: Array<string>;
+    price: bigint;
+    longDescription: string;
+}
+export interface Coupon {
+    expiryDate?: Timestamp;
+    code: string;
+    usageCount: bigint;
+    discountPercent: bigint;
+    isActive: boolean;
+    maxUses?: bigint;
+}
+export interface FaqItemInput {
+    id: string;
+    question: string;
+    displayOrder: bigint;
+    answer: string;
+    isVisible: boolean;
+}
+export interface HeroSlide {
+    id: string;
+    title: string;
+    displayOrder: bigint;
+    imageUrl: string;
+    isVisible: boolean;
+    subtitle: string;
+}
+export interface ProductVariant {
+    variantLabel: string;
+    stock: bigint;
+    variantId: string;
+    price: bigint;
+}
 export interface http_header {
     value: string;
     name: string;
@@ -144,6 +225,84 @@ export interface http_request_result {
     body: Uint8Array;
     headers: Array<http_header>;
 }
+export interface Order {
+    id: string;
+    customerName: string;
+    status: OrderStatus;
+    paymentMethod: PaymentMethod;
+    createdAt: Timestamp;
+    email: string;
+    totalAmount: bigint;
+    address: string;
+    phone: string;
+    items: Array<OrderItem>;
+}
+export interface FaqItem {
+    id: string;
+    question: string;
+    displayOrder: bigint;
+    answer: string;
+    isVisible: boolean;
+}
+export interface SiteSettings {
+    announcementBannerText: string;
+    whatsappOrderEnabled: boolean;
+    maintenanceMode: boolean;
+    whatsappNumber: string;
+    stripeEnabled: boolean;
+    contactEmail: string;
+    footerText: string;
+    showAnnouncementBanner: boolean;
+}
+export interface ShoppingItem {
+    productName: string;
+    currency: string;
+    quantity: bigint;
+    priceInCents: bigint;
+    productDescription: string;
+}
+export interface CouponInput {
+    expiryDate?: Timestamp;
+    code: string;
+    discountPercent: bigint;
+    isActive: boolean;
+    maxUses?: bigint;
+}
+export interface SiteSettingsInput {
+    announcementBannerText?: string;
+    whatsappOrderEnabled?: boolean;
+    maintenanceMode?: boolean;
+    whatsappNumber?: string;
+    stripeEnabled?: boolean;
+    contactEmail?: string;
+    footerText?: string;
+    showAnnouncementBanner?: boolean;
+}
+export interface Product {
+    id: string;
+    displayOrder: bigint;
+    name: string;
+    description: string;
+    variants: Array<ProductVariant>;
+    imageUrl: string;
+    shortDescription: string;
+    isVisible: boolean;
+    category: string;
+    benefits: Array<string>;
+    price: bigint;
+    longDescription: string;
+}
+export enum OrderStatus {
+    Delivered = "Delivered",
+    Confirmed = "Confirmed",
+    Cancelled = "Cancelled",
+    Shipped = "Shipped",
+    Pending = "Pending"
+}
+export enum PaymentMethod {
+    WhatsApp = "WhatsApp",
+    Stripe = "Stripe"
+}
 export enum UserRole {
     admin = "admin",
     user = "user",
@@ -151,19 +310,73 @@ export enum UserRole {
 }
 export interface backendInterface {
     _initializeAccessControl(): Promise<void>;
+    addCoupon(input: CouponInput): Promise<Coupon>;
+    addFAQ(input: FaqItemInput): Promise<FaqItem>;
+    addHeroSlide(input: HeroSlideInput): Promise<HeroSlide>;
+    addProduct(input: ProductInput): Promise<Product>;
+    adminLogin(username: string, password: string): Promise<{
+        __kind__: "ok";
+        ok: string;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    adminLogout(token: string): Promise<void>;
+    applyCoupon(code: string): Promise<CouponValidation>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    changeAdminPassword(token: string, currentPassword: string, newPassword: string): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     createCheckoutSession(items: Array<ShoppingItem>, successUrl: string, cancelUrl: string): Promise<string>;
+    createCoupon(input: CouponInput): Promise<Coupon>;
+    deleteCoupon(code: string): Promise<boolean>;
+    deleteFAQ(id: string): Promise<boolean>;
+    deleteFaqItem(id: string): Promise<boolean>;
+    deleteHeroSlide(id: string): Promise<boolean>;
+    deleteProduct(id: string): Promise<boolean>;
+    getAdminCoupons(): Promise<Array<Coupon>>;
+    getAdminOrders(): Promise<Array<Order>>;
+    getAdminProducts(): Promise<Array<Product>>;
+    getAnalyticsSummary(): Promise<AnalyticsSummary>;
     getCallerUserRole(): Promise<UserRole>;
+    getCoupons(): Promise<Array<Coupon>>;
+    getDashboardStats(): Promise<AnalyticsSummary>;
+    getFAQs(): Promise<Array<FaqItem>>;
+    getFaqItems(): Promise<Array<FaqItem>>;
+    getHeroSlides(): Promise<Array<HeroSlide>>;
+    getOrder(id: string): Promise<Order | null>;
+    getOrders(): Promise<Array<Order>>;
     getProduct(id: string): Promise<Product | null>;
     getProducts(): Promise<Array<Product>>;
+    getRecentOrders(limit: bigint): Promise<Array<Order>>;
+    getSiteSettings(): Promise<SiteSettings>;
     getStripeSessionStatus(sessionId: string): Promise<StripeSessionStatus>;
+    getTopProducts(limit: bigint): Promise<Array<TopProduct>>;
     isCallerAdmin(): Promise<boolean>;
     isStripeConfigured(): Promise<boolean>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
+    storeOrder(input: OrderInput): Promise<Order>;
     submitContact(msg: ContactMessage): Promise<boolean>;
+    toggleCoupon(code: string): Promise<Coupon | null>;
+    toggleProductVisibility(id: string): Promise<Product | null>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
+    updateCoupon(code: string, input: CouponInput): Promise<Coupon | null>;
+    updateFAQ(id: string, input: FaqItemInput): Promise<FaqItem | null>;
+    updateHeroSlide(id: string, input: HeroSlideInput): Promise<HeroSlide | null>;
+    updateOrderStatus(id: string, status: OrderStatus): Promise<Order | null>;
+    updateProduct(id: string, input: ProductInput): Promise<Product | null>;
+    updateSiteSettings(input: SiteSettings): Promise<SiteSettings>;
+    updateSiteSettingsPartial(input: SiteSettingsInput): Promise<SiteSettings>;
+    upsertFaqItem(input: FaqItemInput): Promise<FaqItem>;
+    upsertHeroSlide(input: HeroSlideInput): Promise<HeroSlide>;
+    validateAdminSession(token: string): Promise<boolean>;
+    validateCoupon(code: string): Promise<CouponValidation>;
 }
-import type { Product as _Product, StripeSessionStatus as _StripeSessionStatus, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
+import type { Coupon as _Coupon, CouponInput as _CouponInput, CouponValidation as _CouponValidation, FaqItem as _FaqItem, HeroSlide as _HeroSlide, Order as _Order, OrderInput as _OrderInput, OrderItem as _OrderItem, OrderStatus as _OrderStatus, PaymentMethod as _PaymentMethod, Product as _Product, SiteSettingsInput as _SiteSettingsInput, StripeSessionStatus as _StripeSessionStatus, Timestamp as _Timestamp, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _initializeAccessControl(): Promise<void> {
@@ -180,18 +393,142 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async assignCallerUserRole(arg0: Principal, arg1: UserRole): Promise<void> {
+    async addCoupon(arg0: CouponInput): Promise<Coupon> {
         if (this.processError) {
             try {
-                const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n1(this._uploadFile, this._downloadFile, arg1));
+                const result = await this.actor.addCoupon(to_candid_CouponInput_n1(this._uploadFile, this._downloadFile, arg0));
+                return from_candid_Coupon_n3(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addCoupon(to_candid_CouponInput_n1(this._uploadFile, this._downloadFile, arg0));
+            return from_candid_Coupon_n3(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async addFAQ(arg0: FaqItemInput): Promise<FaqItem> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addFAQ(arg0);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n1(this._uploadFile, this._downloadFile, arg1));
+            const result = await this.actor.addFAQ(arg0);
             return result;
+        }
+    }
+    async addHeroSlide(arg0: HeroSlideInput): Promise<HeroSlide> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addHeroSlide(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addHeroSlide(arg0);
+            return result;
+        }
+    }
+    async addProduct(arg0: ProductInput): Promise<Product> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addProduct(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addProduct(arg0);
+            return result;
+        }
+    }
+    async adminLogin(arg0: string, arg1: string): Promise<{
+        __kind__: "ok";
+        ok: string;
+    } | {
+        __kind__: "err";
+        err: string;
+    }> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.adminLogin(arg0, arg1);
+                return from_candid_variant_n7(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.adminLogin(arg0, arg1);
+            return from_candid_variant_n7(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async adminLogout(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.adminLogout(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.adminLogout(arg0);
+            return result;
+        }
+    }
+    async applyCoupon(arg0: string): Promise<CouponValidation> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.applyCoupon(arg0);
+                return from_candid_CouponValidation_n8(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.applyCoupon(arg0);
+            return from_candid_CouponValidation_n8(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async assignCallerUserRole(arg0: Principal, arg1: UserRole): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n10(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n10(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async changeAdminPassword(arg0: string, arg1: string, arg2: string): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.changeAdminPassword(arg0, arg1, arg2);
+                return from_candid_variant_n12(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.changeAdminPassword(arg0, arg1, arg2);
+            return from_candid_variant_n12(this._uploadFile, this._downloadFile, result);
         }
     }
     async createCheckoutSession(arg0: Array<ShoppingItem>, arg1: string, arg2: string): Promise<string> {
@@ -208,32 +545,270 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async createCoupon(arg0: CouponInput): Promise<Coupon> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createCoupon(to_candid_CouponInput_n1(this._uploadFile, this._downloadFile, arg0));
+                return from_candid_Coupon_n3(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createCoupon(to_candid_CouponInput_n1(this._uploadFile, this._downloadFile, arg0));
+            return from_candid_Coupon_n3(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async deleteCoupon(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteCoupon(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteCoupon(arg0);
+            return result;
+        }
+    }
+    async deleteFAQ(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteFAQ(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteFAQ(arg0);
+            return result;
+        }
+    }
+    async deleteFaqItem(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteFaqItem(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteFaqItem(arg0);
+            return result;
+        }
+    }
+    async deleteHeroSlide(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteHeroSlide(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteHeroSlide(arg0);
+            return result;
+        }
+    }
+    async deleteProduct(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteProduct(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteProduct(arg0);
+            return result;
+        }
+    }
+    async getAdminCoupons(): Promise<Array<Coupon>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAdminCoupons();
+                return from_candid_vec_n13(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAdminCoupons();
+            return from_candid_vec_n13(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAdminOrders(): Promise<Array<Order>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAdminOrders();
+                return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAdminOrders();
+            return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAdminProducts(): Promise<Array<Product>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAdminProducts();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAdminProducts();
+            return result;
+        }
+    }
+    async getAnalyticsSummary(): Promise<AnalyticsSummary> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAnalyticsSummary();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAnalyticsSummary();
+            return result;
+        }
+    }
     async getCallerUserRole(): Promise<UserRole> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserRole();
-                return from_candid_UserRole_n3(this._uploadFile, this._downloadFile, result);
+                return from_candid_UserRole_n21(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserRole();
-            return from_candid_UserRole_n3(this._uploadFile, this._downloadFile, result);
+            return from_candid_UserRole_n21(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getCoupons(): Promise<Array<Coupon>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCoupons();
+                return from_candid_vec_n13(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCoupons();
+            return from_candid_vec_n13(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getDashboardStats(): Promise<AnalyticsSummary> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getDashboardStats();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getDashboardStats();
+            return result;
+        }
+    }
+    async getFAQs(): Promise<Array<FaqItem>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getFAQs();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getFAQs();
+            return result;
+        }
+    }
+    async getFaqItems(): Promise<Array<FaqItem>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getFaqItems();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getFaqItems();
+            return result;
+        }
+    }
+    async getHeroSlides(): Promise<Array<HeroSlide>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getHeroSlides();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getHeroSlides();
+            return result;
+        }
+    }
+    async getOrder(arg0: string): Promise<Order | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getOrder(arg0);
+                return from_candid_opt_n23(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getOrder(arg0);
+            return from_candid_opt_n23(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getOrders(): Promise<Array<Order>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getOrders();
+                return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getOrders();
+            return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
         }
     }
     async getProduct(arg0: string): Promise<Product | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getProduct(arg0);
-                return from_candid_opt_n5(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n24(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getProduct(arg0);
-            return from_candid_opt_n5(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n24(this._uploadFile, this._downloadFile, result);
         }
     }
     async getProducts(): Promise<Array<Product>> {
@@ -250,18 +825,60 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getRecentOrders(arg0: bigint): Promise<Array<Order>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getRecentOrders(arg0);
+                return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getRecentOrders(arg0);
+            return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getSiteSettings(): Promise<SiteSettings> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getSiteSettings();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getSiteSettings();
+            return result;
+        }
+    }
     async getStripeSessionStatus(arg0: string): Promise<StripeSessionStatus> {
         if (this.processError) {
             try {
                 const result = await this.actor.getStripeSessionStatus(arg0);
-                return from_candid_StripeSessionStatus_n6(this._uploadFile, this._downloadFile, result);
+                return from_candid_StripeSessionStatus_n25(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getStripeSessionStatus(arg0);
-            return from_candid_StripeSessionStatus_n6(this._uploadFile, this._downloadFile, result);
+            return from_candid_StripeSessionStatus_n25(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getTopProducts(arg0: bigint): Promise<Array<TopProduct>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getTopProducts(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getTopProducts(arg0);
+            return result;
         }
     }
     async isCallerAdmin(): Promise<boolean> {
@@ -306,6 +923,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async storeOrder(arg0: OrderInput): Promise<Order> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.storeOrder(to_candid_OrderInput_n29(this._uploadFile, this._downloadFile, arg0));
+                return from_candid_Order_n15(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.storeOrder(to_candid_OrderInput_n29(this._uploadFile, this._downloadFile, arg0));
+            return from_candid_Order_n15(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async submitContact(arg0: ContactMessage): Promise<boolean> {
         if (this.processError) {
             try {
@@ -318,6 +949,34 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.submitContact(arg0);
             return result;
+        }
+    }
+    async toggleCoupon(arg0: string): Promise<Coupon | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.toggleCoupon(arg0);
+                return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.toggleCoupon(arg0);
+            return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async toggleProductVisibility(arg0: string): Promise<Product | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.toggleProductVisibility(arg0);
+                return from_candid_opt_n24(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.toggleProductVisibility(arg0);
+            return from_candid_opt_n24(this._uploadFile, this._downloadFile, result);
         }
     }
     async transform(arg0: TransformationInput): Promise<TransformationOutput> {
@@ -334,20 +993,243 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async updateCoupon(arg0: string, arg1: CouponInput): Promise<Coupon | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateCoupon(arg0, to_candid_CouponInput_n1(this._uploadFile, this._downloadFile, arg1));
+                return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateCoupon(arg0, to_candid_CouponInput_n1(this._uploadFile, this._downloadFile, arg1));
+            return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async updateFAQ(arg0: string, arg1: FaqItemInput): Promise<FaqItem | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateFAQ(arg0, arg1);
+                return from_candid_opt_n34(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateFAQ(arg0, arg1);
+            return from_candid_opt_n34(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async updateHeroSlide(arg0: string, arg1: HeroSlideInput): Promise<HeroSlide | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateHeroSlide(arg0, arg1);
+                return from_candid_opt_n35(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateHeroSlide(arg0, arg1);
+            return from_candid_opt_n35(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async updateOrderStatus(arg0: string, arg1: OrderStatus): Promise<Order | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateOrderStatus(arg0, to_candid_OrderStatus_n36(this._uploadFile, this._downloadFile, arg1));
+                return from_candid_opt_n23(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateOrderStatus(arg0, to_candid_OrderStatus_n36(this._uploadFile, this._downloadFile, arg1));
+            return from_candid_opt_n23(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async updateProduct(arg0: string, arg1: ProductInput): Promise<Product | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateProduct(arg0, arg1);
+                return from_candid_opt_n24(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateProduct(arg0, arg1);
+            return from_candid_opt_n24(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async updateSiteSettings(arg0: SiteSettings): Promise<SiteSettings> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateSiteSettings(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateSiteSettings(arg0);
+            return result;
+        }
+    }
+    async updateSiteSettingsPartial(arg0: SiteSettingsInput): Promise<SiteSettings> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateSiteSettingsPartial(to_candid_SiteSettingsInput_n38(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateSiteSettingsPartial(to_candid_SiteSettingsInput_n38(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async upsertFaqItem(arg0: FaqItemInput): Promise<FaqItem> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.upsertFaqItem(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.upsertFaqItem(arg0);
+            return result;
+        }
+    }
+    async upsertHeroSlide(arg0: HeroSlideInput): Promise<HeroSlide> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.upsertHeroSlide(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.upsertHeroSlide(arg0);
+            return result;
+        }
+    }
+    async validateAdminSession(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.validateAdminSession(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.validateAdminSession(arg0);
+            return result;
+        }
+    }
+    async validateCoupon(arg0: string): Promise<CouponValidation> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.validateCoupon(arg0);
+                return from_candid_CouponValidation_n8(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.validateCoupon(arg0);
+            return from_candid_CouponValidation_n8(this._uploadFile, this._downloadFile, result);
+        }
+    }
 }
-function from_candid_StripeSessionStatus_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _StripeSessionStatus): StripeSessionStatus {
-    return from_candid_variant_n7(_uploadFile, _downloadFile, value);
+function from_candid_CouponValidation_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CouponValidation): CouponValidation {
+    return from_candid_variant_n9(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
-    return from_candid_variant_n4(_uploadFile, _downloadFile, value);
+function from_candid_Coupon_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Coupon): Coupon {
+    return from_candid_record_n4(_uploadFile, _downloadFile, value);
 }
-function from_candid_opt_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Product]): Product | null {
+function from_candid_OrderStatus_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _OrderStatus): OrderStatus {
+    return from_candid_variant_n18(_uploadFile, _downloadFile, value);
+}
+function from_candid_Order_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Order): Order {
+    return from_candid_record_n16(_uploadFile, _downloadFile, value);
+}
+function from_candid_PaymentMethod_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _PaymentMethod): PaymentMethod {
+    return from_candid_variant_n20(_uploadFile, _downloadFile, value);
+}
+function from_candid_StripeSessionStatus_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _StripeSessionStatus): StripeSessionStatus {
+    return from_candid_variant_n26(_uploadFile, _downloadFile, value);
+}
+function from_candid_UserRole_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
+    return from_candid_variant_n22(_uploadFile, _downloadFile, value);
+}
+function from_candid_opt_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Order]): Order | null {
+    return value.length === 0 ? null : from_candid_Order_n15(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Product]): Product | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
+function from_candid_opt_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_opt_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Coupon]): Coupon | null {
+    return value.length === 0 ? null : from_candid_Coupon_n3(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n34(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_FaqItem]): FaqItem | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_HeroSlide]): HeroSlide | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Timestamp]): Timestamp | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_record_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    customerName: string;
+    status: _OrderStatus;
+    paymentMethod: _PaymentMethod;
+    createdAt: _Timestamp;
+    email: string;
+    totalAmount: bigint;
+    address: string;
+    phone: string;
+    items: Array<_OrderItem>;
+}): {
+    id: string;
+    customerName: string;
+    status: OrderStatus;
+    paymentMethod: PaymentMethod;
+    createdAt: Timestamp;
+    email: string;
+    totalAmount: bigint;
+    address: string;
+    phone: string;
+    items: Array<OrderItem>;
+} {
+    return {
+        id: value.id,
+        customerName: value.customerName,
+        status: from_candid_OrderStatus_n17(_uploadFile, _downloadFile, value.status),
+        paymentMethod: from_candid_PaymentMethod_n19(_uploadFile, _downloadFile, value.paymentMethod),
+        createdAt: value.createdAt,
+        email: value.email,
+        totalAmount: value.totalAmount,
+        address: value.address,
+        phone: value.phone,
+        items: value.items
+    };
+}
+function from_candid_record_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     userPrincipal: [] | [string];
     response: string;
 }): {
@@ -355,11 +1237,74 @@ function from_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint
     response: string;
 } {
     return {
-        userPrincipal: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.userPrincipal)),
+        userPrincipal: record_opt_to_undefined(from_candid_opt_n28(_uploadFile, _downloadFile, value.userPrincipal)),
         response: value.response
     };
 }
-function from_candid_variant_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    expiryDate: [] | [_Timestamp];
+    code: string;
+    usageCount: bigint;
+    discountPercent: bigint;
+    isActive: boolean;
+    maxUses: [] | [bigint];
+}): {
+    expiryDate?: Timestamp;
+    code: string;
+    usageCount: bigint;
+    discountPercent: bigint;
+    isActive: boolean;
+    maxUses?: bigint;
+} {
+    return {
+        expiryDate: record_opt_to_undefined(from_candid_opt_n5(_uploadFile, _downloadFile, value.expiryDate)),
+        code: value.code,
+        usageCount: value.usageCount,
+        discountPercent: value.discountPercent,
+        isActive: value.isActive,
+        maxUses: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.maxUses))
+    };
+}
+function from_candid_variant_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    ok: null;
+} | {
+    err: string;
+}): {
+    __kind__: "ok";
+    ok: null;
+} | {
+    __kind__: "err";
+    err: string;
+} {
+    return "ok" in value ? {
+        __kind__: "ok",
+        ok: value.ok
+    } : "err" in value ? {
+        __kind__: "err",
+        err: value.err
+    } : value;
+}
+function from_candid_variant_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    Delivered: null;
+} | {
+    Confirmed: null;
+} | {
+    Cancelled: null;
+} | {
+    Shipped: null;
+} | {
+    Pending: null;
+}): OrderStatus {
+    return "Delivered" in value ? OrderStatus.Delivered : "Confirmed" in value ? OrderStatus.Confirmed : "Cancelled" in value ? OrderStatus.Cancelled : "Shipped" in value ? OrderStatus.Shipped : "Pending" in value ? OrderStatus.Pending : value;
+}
+function from_candid_variant_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    WhatsApp: null;
+} | {
+    Stripe: null;
+}): PaymentMethod {
+    return "WhatsApp" in value ? PaymentMethod.WhatsApp : "Stripe" in value ? PaymentMethod.Stripe : value;
+}
+function from_candid_variant_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     admin: null;
 } | {
     user: null;
@@ -368,7 +1313,7 @@ function from_candid_variant_n4(_uploadFile: (file: ExternalBlob) => Promise<Uin
 }): UserRole {
     return "admin" in value ? UserRole.admin : "user" in value ? UserRole.user : "guest" in value ? UserRole.guest : value;
 }
-function from_candid_variant_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     completed: {
         userPrincipal: [] | [string];
         response: string;
@@ -391,16 +1336,177 @@ function from_candid_variant_n7(_uploadFile: (file: ExternalBlob) => Promise<Uin
 } {
     return "completed" in value ? {
         __kind__: "completed",
-        completed: from_candid_record_n8(_uploadFile, _downloadFile, value.completed)
+        completed: from_candid_record_n27(_uploadFile, _downloadFile, value.completed)
     } : "failed" in value ? {
         __kind__: "failed",
         failed: value.failed
     } : value;
 }
-function to_candid_UserRole_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
-    return to_candid_variant_n2(_uploadFile, _downloadFile, value);
+function from_candid_variant_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    ok: string;
+} | {
+    err: string;
+}): {
+    __kind__: "ok";
+    ok: string;
+} | {
+    __kind__: "err";
+    err: string;
+} {
+    return "ok" in value ? {
+        __kind__: "ok",
+        ok: value.ok
+    } : "err" in value ? {
+        __kind__: "err",
+        err: value.err
+    } : value;
 }
-function to_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): {
+function from_candid_variant_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    Exhausted: null;
+} | {
+    Inactive: null;
+} | {
+    NotFound: null;
+} | {
+    Valid: bigint;
+} | {
+    Expired: null;
+}): {
+    __kind__: "Exhausted";
+    Exhausted: null;
+} | {
+    __kind__: "Inactive";
+    Inactive: null;
+} | {
+    __kind__: "NotFound";
+    NotFound: null;
+} | {
+    __kind__: "Valid";
+    Valid: bigint;
+} | {
+    __kind__: "Expired";
+    Expired: null;
+} {
+    return "Exhausted" in value ? {
+        __kind__: "Exhausted",
+        Exhausted: value.Exhausted
+    } : "Inactive" in value ? {
+        __kind__: "Inactive",
+        Inactive: value.Inactive
+    } : "NotFound" in value ? {
+        __kind__: "NotFound",
+        NotFound: value.NotFound
+    } : "Valid" in value ? {
+        __kind__: "Valid",
+        Valid: value.Valid
+    } : "Expired" in value ? {
+        __kind__: "Expired",
+        Expired: value.Expired
+    } : value;
+}
+function from_candid_vec_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Coupon>): Array<Coupon> {
+    return value.map((x)=>from_candid_Coupon_n3(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Order>): Array<Order> {
+    return value.map((x)=>from_candid_Order_n15(_uploadFile, _downloadFile, x));
+}
+function to_candid_CouponInput_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: CouponInput): _CouponInput {
+    return to_candid_record_n2(_uploadFile, _downloadFile, value);
+}
+function to_candid_OrderInput_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: OrderInput): _OrderInput {
+    return to_candid_record_n30(_uploadFile, _downloadFile, value);
+}
+function to_candid_OrderStatus_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: OrderStatus): _OrderStatus {
+    return to_candid_variant_n37(_uploadFile, _downloadFile, value);
+}
+function to_candid_PaymentMethod_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: PaymentMethod): _PaymentMethod {
+    return to_candid_variant_n32(_uploadFile, _downloadFile, value);
+}
+function to_candid_SiteSettingsInput_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: SiteSettingsInput): _SiteSettingsInput {
+    return to_candid_record_n39(_uploadFile, _downloadFile, value);
+}
+function to_candid_UserRole_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
+    return to_candid_variant_n11(_uploadFile, _downloadFile, value);
+}
+function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    expiryDate?: Timestamp;
+    code: string;
+    discountPercent: bigint;
+    isActive: boolean;
+    maxUses?: bigint;
+}): {
+    expiryDate: [] | [_Timestamp];
+    code: string;
+    discountPercent: bigint;
+    isActive: boolean;
+    maxUses: [] | [bigint];
+} {
+    return {
+        expiryDate: value.expiryDate ? candid_some(value.expiryDate) : candid_none(),
+        code: value.code,
+        discountPercent: value.discountPercent,
+        isActive: value.isActive,
+        maxUses: value.maxUses ? candid_some(value.maxUses) : candid_none()
+    };
+}
+function to_candid_record_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    customerName: string;
+    paymentMethod: PaymentMethod;
+    email: string;
+    totalAmount: bigint;
+    address: string;
+    phone: string;
+    items: Array<OrderItem>;
+}): {
+    customerName: string;
+    paymentMethod: _PaymentMethod;
+    email: string;
+    totalAmount: bigint;
+    address: string;
+    phone: string;
+    items: Array<_OrderItem>;
+} {
+    return {
+        customerName: value.customerName,
+        paymentMethod: to_candid_PaymentMethod_n31(_uploadFile, _downloadFile, value.paymentMethod),
+        email: value.email,
+        totalAmount: value.totalAmount,
+        address: value.address,
+        phone: value.phone,
+        items: value.items
+    };
+}
+function to_candid_record_n39(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    announcementBannerText?: string;
+    whatsappOrderEnabled?: boolean;
+    maintenanceMode?: boolean;
+    whatsappNumber?: string;
+    stripeEnabled?: boolean;
+    contactEmail?: string;
+    footerText?: string;
+    showAnnouncementBanner?: boolean;
+}): {
+    announcementBannerText: [] | [string];
+    whatsappOrderEnabled: [] | [boolean];
+    maintenanceMode: [] | [boolean];
+    whatsappNumber: [] | [string];
+    stripeEnabled: [] | [boolean];
+    contactEmail: [] | [string];
+    footerText: [] | [string];
+    showAnnouncementBanner: [] | [boolean];
+} {
+    return {
+        announcementBannerText: value.announcementBannerText ? candid_some(value.announcementBannerText) : candid_none(),
+        whatsappOrderEnabled: value.whatsappOrderEnabled ? candid_some(value.whatsappOrderEnabled) : candid_none(),
+        maintenanceMode: value.maintenanceMode ? candid_some(value.maintenanceMode) : candid_none(),
+        whatsappNumber: value.whatsappNumber ? candid_some(value.whatsappNumber) : candid_none(),
+        stripeEnabled: value.stripeEnabled ? candid_some(value.stripeEnabled) : candid_none(),
+        contactEmail: value.contactEmail ? candid_some(value.contactEmail) : candid_none(),
+        footerText: value.footerText ? candid_some(value.footerText) : candid_none(),
+        showAnnouncementBanner: value.showAnnouncementBanner ? candid_some(value.showAnnouncementBanner) : candid_none()
+    };
+}
+function to_candid_variant_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): {
     admin: null;
 } | {
     user: null;
@@ -413,6 +1519,40 @@ function to_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         user: null
     } : value == UserRole.guest ? {
         guest: null
+    } : value;
+}
+function to_candid_variant_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: PaymentMethod): {
+    WhatsApp: null;
+} | {
+    Stripe: null;
+} {
+    return value == PaymentMethod.WhatsApp ? {
+        WhatsApp: null
+    } : value == PaymentMethod.Stripe ? {
+        Stripe: null
+    } : value;
+}
+function to_candid_variant_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: OrderStatus): {
+    Delivered: null;
+} | {
+    Confirmed: null;
+} | {
+    Cancelled: null;
+} | {
+    Shipped: null;
+} | {
+    Pending: null;
+} {
+    return value == OrderStatus.Delivered ? {
+        Delivered: null
+    } : value == OrderStatus.Confirmed ? {
+        Confirmed: null
+    } : value == OrderStatus.Cancelled ? {
+        Cancelled: null
+    } : value == OrderStatus.Shipped ? {
+        Shipped: null
+    } : value == OrderStatus.Pending ? {
+        Pending: null
     } : value;
 }
 export interface CreateActorOptions {

@@ -1,7 +1,9 @@
+import { createActor } from "@/backend";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { type CartItem, useCartStore } from "@/store/cartStore";
+import { useActor } from "@caffeineai/core-infrastructure";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -17,11 +19,6 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-
-// Hidden coupon definitions — NOT displayed anywhere on the UI
-const VALID_COUPONS: Record<string, number> = {
-  FARM10: 0.1,
-};
 
 function buildWhatsAppMessage(
   items: CartItem[],
@@ -46,6 +43,7 @@ function buildWhatsAppMessage(
 }
 
 export function Cart() {
+  const { actor } = useActor(createActor);
   const items = useCartStore((s) => s.items);
   const removeItem = useCartStore((s) => s.removeItem);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
@@ -54,24 +52,42 @@ export function Cart() {
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [couponError, setCouponError] = useState("");
+  const [discountRate, setDiscountRate] = useState(0);
 
-  const discountRate = appliedCoupon ? (VALID_COUPONS[appliedCoupon] ?? 0) : 0;
   const discountAmount = Math.round(totalPrice * discountRate);
   const finalTotal = totalPrice - discountAmount;
 
-  function handleApplyCoupon() {
+  async function handleApplyCoupon() {
     const code = couponInput.trim().toUpperCase();
-    if (VALID_COUPONS[code] !== undefined) {
-      setAppliedCoupon(code);
-      setCouponError("");
-      setCouponInput("");
-    } else {
-      setCouponError("Invalid coupon code. Please try again.");
+    if (!actor) {
+      setCouponError("Please try again.");
+      return;
+    }
+    try {
+      const result = await actor.validateCoupon(code);
+      if (result.__kind__ === "Valid") {
+        const pct = Number(result.Valid);
+        setAppliedCoupon(code);
+        setDiscountRate(pct / 100);
+        setCouponError("");
+        setCouponInput("");
+      } else if (result.__kind__ === "Expired") {
+        setCouponError("Coupon has expired");
+      } else if (result.__kind__ === "Exhausted") {
+        setCouponError("Coupon usage limit reached");
+      } else if (result.__kind__ === "Inactive") {
+        setCouponError("Coupon is not active");
+      } else {
+        setCouponError("Invalid coupon code");
+      }
+    } catch {
+      setCouponError("Invalid coupon code");
     }
   }
 
   function handleRemoveCoupon() {
     setAppliedCoupon(null);
+    setDiscountRate(0);
     setCouponError("");
     setCouponInput("");
   }
@@ -296,7 +312,8 @@ export function Cart() {
                           {appliedCoupon}
                         </p>
                         <p className="text-xs text-primary/80">
-                          Coupon applied! 10% discount added
+                          Coupon applied! {Math.round(discountRate * 100)}%
+                          discount added
                         </p>
                       </div>
                     </div>

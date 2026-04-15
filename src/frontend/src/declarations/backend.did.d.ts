@@ -10,18 +10,135 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface AnalyticsSummary {
+  'totalOrders' : bigint,
+  'pendingOrders' : bigint,
+  'totalRevenue' : bigint,
+  'deliveredOrders' : bigint,
+}
 export interface ContactMessage {
   'name' : string,
   'email' : string,
   'message' : string,
 }
+export interface Coupon {
+  'expiryDate' : [] | [Timestamp],
+  'code' : string,
+  'usageCount' : bigint,
+  'discountPercent' : bigint,
+  'isActive' : boolean,
+  'maxUses' : [] | [bigint],
+}
+export interface CouponInput {
+  'expiryDate' : [] | [Timestamp],
+  'code' : string,
+  'discountPercent' : bigint,
+  'isActive' : boolean,
+  'maxUses' : [] | [bigint],
+}
+export type CouponValidation = { 'Exhausted' : null } |
+  { 'Inactive' : null } |
+  { 'NotFound' : null } |
+  { 'Valid' : bigint } |
+  { 'Expired' : null };
+export interface FaqItem {
+  'id' : string,
+  'question' : string,
+  'displayOrder' : bigint,
+  'answer' : string,
+  'isVisible' : boolean,
+}
+export interface FaqItemInput {
+  'id' : string,
+  'question' : string,
+  'displayOrder' : bigint,
+  'answer' : string,
+  'isVisible' : boolean,
+}
+export interface HeroSlide {
+  'id' : string,
+  'title' : string,
+  'displayOrder' : bigint,
+  'imageUrl' : string,
+  'isVisible' : boolean,
+  'subtitle' : string,
+}
+export interface HeroSlideInput {
+  'id' : string,
+  'title' : string,
+  'displayOrder' : bigint,
+  'imageUrl' : string,
+  'isVisible' : boolean,
+  'subtitle' : string,
+}
+export interface Order {
+  'id' : string,
+  'customerName' : string,
+  'status' : OrderStatus,
+  'paymentMethod' : PaymentMethod,
+  'createdAt' : Timestamp,
+  'email' : string,
+  'totalAmount' : bigint,
+  'address' : string,
+  'phone' : string,
+  'items' : Array<OrderItem>,
+}
+export interface OrderInput {
+  'customerName' : string,
+  'paymentMethod' : PaymentMethod,
+  'email' : string,
+  'totalAmount' : bigint,
+  'address' : string,
+  'phone' : string,
+  'items' : Array<OrderItem>,
+}
+export interface OrderItem {
+  'variantLabel' : string,
+  'productId' : string,
+  'productName' : string,
+  'variantId' : string,
+  'quantity' : bigint,
+  'unitPrice' : bigint,
+}
+export type OrderStatus = { 'Delivered' : null } |
+  { 'Confirmed' : null } |
+  { 'Cancelled' : null } |
+  { 'Shipped' : null } |
+  { 'Pending' : null };
+export type PaymentMethod = { 'WhatsApp' : null } |
+  { 'Stripe' : null };
 export interface Product {
   'id' : string,
+  'displayOrder' : bigint,
   'name' : string,
   'description' : string,
+  'variants' : Array<ProductVariant>,
   'imageUrl' : string,
+  'shortDescription' : string,
+  'isVisible' : boolean,
   'category' : string,
   'benefits' : Array<string>,
+  'price' : bigint,
+  'longDescription' : string,
+}
+export interface ProductInput {
+  'id' : string,
+  'displayOrder' : bigint,
+  'name' : string,
+  'description' : string,
+  'variants' : Array<ProductVariant>,
+  'imageUrl' : string,
+  'shortDescription' : string,
+  'isVisible' : boolean,
+  'category' : string,
+  'benefits' : Array<string>,
+  'price' : bigint,
+  'longDescription' : string,
+}
+export interface ProductVariant {
+  'variantLabel' : string,
+  'stock' : bigint,
+  'variantId' : string,
   'price' : bigint,
 }
 export interface ShoppingItem {
@@ -31,6 +148,26 @@ export interface ShoppingItem {
   'priceInCents' : bigint,
   'productDescription' : string,
 }
+export interface SiteSettings {
+  'announcementBannerText' : string,
+  'whatsappOrderEnabled' : boolean,
+  'maintenanceMode' : boolean,
+  'whatsappNumber' : string,
+  'stripeEnabled' : boolean,
+  'contactEmail' : string,
+  'footerText' : string,
+  'showAnnouncementBanner' : boolean,
+}
+export interface SiteSettingsInput {
+  'announcementBannerText' : [] | [string],
+  'whatsappOrderEnabled' : [] | [boolean],
+  'maintenanceMode' : [] | [boolean],
+  'whatsappNumber' : [] | [string],
+  'stripeEnabled' : [] | [boolean],
+  'contactEmail' : [] | [string],
+  'footerText' : [] | [string],
+  'showAnnouncementBanner' : [] | [boolean],
+}
 export interface StripeConfiguration {
   'allowedCountries' : Array<string>,
   'secretKey' : string,
@@ -39,6 +176,13 @@ export type StripeSessionStatus = {
     'completed' : { 'userPrincipal' : [] | [string], 'response' : string }
   } |
   { 'failed' : { 'error' : string } };
+export type Timestamp = bigint;
+export interface TopProduct {
+  'revenue' : bigint,
+  'productId' : string,
+  'productName' : string,
+  'orderCount' : bigint,
+}
 export interface TransformationInput {
   'context' : Uint8Array,
   'response' : http_request_result,
@@ -59,20 +203,70 @@ export interface http_request_result {
 }
 export interface _SERVICE {
   '_initializeAccessControl' : ActorMethod<[], undefined>,
+  'addCoupon' : ActorMethod<[CouponInput], Coupon>,
+  'addFAQ' : ActorMethod<[FaqItemInput], FaqItem>,
+  'addHeroSlide' : ActorMethod<[HeroSlideInput], HeroSlide>,
+  'addProduct' : ActorMethod<[ProductInput], Product>,
+  'adminLogin' : ActorMethod<
+    [string, string],
+    { 'ok' : string } |
+      { 'err' : string }
+  >,
+  'adminLogout' : ActorMethod<[string], undefined>,
+  'applyCoupon' : ActorMethod<[string], CouponValidation>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'changeAdminPassword' : ActorMethod<
+    [string, string, string],
+    { 'ok' : null } |
+      { 'err' : string }
+  >,
   'createCheckoutSession' : ActorMethod<
     [Array<ShoppingItem>, string, string],
     string
   >,
+  'createCoupon' : ActorMethod<[CouponInput], Coupon>,
+  'deleteCoupon' : ActorMethod<[string], boolean>,
+  'deleteFAQ' : ActorMethod<[string], boolean>,
+  'deleteFaqItem' : ActorMethod<[string], boolean>,
+  'deleteHeroSlide' : ActorMethod<[string], boolean>,
+  'deleteProduct' : ActorMethod<[string], boolean>,
+  'getAdminCoupons' : ActorMethod<[], Array<Coupon>>,
+  'getAdminOrders' : ActorMethod<[], Array<Order>>,
+  'getAdminProducts' : ActorMethod<[], Array<Product>>,
+  'getAnalyticsSummary' : ActorMethod<[], AnalyticsSummary>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getCoupons' : ActorMethod<[], Array<Coupon>>,
+  'getDashboardStats' : ActorMethod<[], AnalyticsSummary>,
+  'getFAQs' : ActorMethod<[], Array<FaqItem>>,
+  'getFaqItems' : ActorMethod<[], Array<FaqItem>>,
+  'getHeroSlides' : ActorMethod<[], Array<HeroSlide>>,
+  'getOrder' : ActorMethod<[string], [] | [Order]>,
+  'getOrders' : ActorMethod<[], Array<Order>>,
   'getProduct' : ActorMethod<[string], [] | [Product]>,
   'getProducts' : ActorMethod<[], Array<Product>>,
+  'getRecentOrders' : ActorMethod<[bigint], Array<Order>>,
+  'getSiteSettings' : ActorMethod<[], SiteSettings>,
   'getStripeSessionStatus' : ActorMethod<[string], StripeSessionStatus>,
+  'getTopProducts' : ActorMethod<[bigint], Array<TopProduct>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isStripeConfigured' : ActorMethod<[], boolean>,
   'setStripeConfiguration' : ActorMethod<[StripeConfiguration], undefined>,
+  'storeOrder' : ActorMethod<[OrderInput], Order>,
   'submitContact' : ActorMethod<[ContactMessage], boolean>,
+  'toggleCoupon' : ActorMethod<[string], [] | [Coupon]>,
+  'toggleProductVisibility' : ActorMethod<[string], [] | [Product]>,
   'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
+  'updateCoupon' : ActorMethod<[string, CouponInput], [] | [Coupon]>,
+  'updateFAQ' : ActorMethod<[string, FaqItemInput], [] | [FaqItem]>,
+  'updateHeroSlide' : ActorMethod<[string, HeroSlideInput], [] | [HeroSlide]>,
+  'updateOrderStatus' : ActorMethod<[string, OrderStatus], [] | [Order]>,
+  'updateProduct' : ActorMethod<[string, ProductInput], [] | [Product]>,
+  'updateSiteSettings' : ActorMethod<[SiteSettings], SiteSettings>,
+  'updateSiteSettingsPartial' : ActorMethod<[SiteSettingsInput], SiteSettings>,
+  'upsertFaqItem' : ActorMethod<[FaqItemInput], FaqItem>,
+  'upsertHeroSlide' : ActorMethod<[HeroSlideInput], HeroSlide>,
+  'validateAdminSession' : ActorMethod<[string], boolean>,
+  'validateCoupon' : ActorMethod<[string], CouponValidation>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

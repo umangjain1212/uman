@@ -8,6 +8,93 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const Timestamp = IDL.Int;
+export const CouponInput = IDL.Record({
+  'expiryDate' : IDL.Opt(Timestamp),
+  'code' : IDL.Text,
+  'discountPercent' : IDL.Nat,
+  'isActive' : IDL.Bool,
+  'maxUses' : IDL.Opt(IDL.Nat),
+});
+export const Coupon = IDL.Record({
+  'expiryDate' : IDL.Opt(Timestamp),
+  'code' : IDL.Text,
+  'usageCount' : IDL.Nat,
+  'discountPercent' : IDL.Nat,
+  'isActive' : IDL.Bool,
+  'maxUses' : IDL.Opt(IDL.Nat),
+});
+export const FaqItemInput = IDL.Record({
+  'id' : IDL.Text,
+  'question' : IDL.Text,
+  'displayOrder' : IDL.Nat,
+  'answer' : IDL.Text,
+  'isVisible' : IDL.Bool,
+});
+export const FaqItem = IDL.Record({
+  'id' : IDL.Text,
+  'question' : IDL.Text,
+  'displayOrder' : IDL.Nat,
+  'answer' : IDL.Text,
+  'isVisible' : IDL.Bool,
+});
+export const HeroSlideInput = IDL.Record({
+  'id' : IDL.Text,
+  'title' : IDL.Text,
+  'displayOrder' : IDL.Nat,
+  'imageUrl' : IDL.Text,
+  'isVisible' : IDL.Bool,
+  'subtitle' : IDL.Text,
+});
+export const HeroSlide = IDL.Record({
+  'id' : IDL.Text,
+  'title' : IDL.Text,
+  'displayOrder' : IDL.Nat,
+  'imageUrl' : IDL.Text,
+  'isVisible' : IDL.Bool,
+  'subtitle' : IDL.Text,
+});
+export const ProductVariant = IDL.Record({
+  'variantLabel' : IDL.Text,
+  'stock' : IDL.Nat,
+  'variantId' : IDL.Text,
+  'price' : IDL.Nat,
+});
+export const ProductInput = IDL.Record({
+  'id' : IDL.Text,
+  'displayOrder' : IDL.Nat,
+  'name' : IDL.Text,
+  'description' : IDL.Text,
+  'variants' : IDL.Vec(ProductVariant),
+  'imageUrl' : IDL.Text,
+  'shortDescription' : IDL.Text,
+  'isVisible' : IDL.Bool,
+  'category' : IDL.Text,
+  'benefits' : IDL.Vec(IDL.Text),
+  'price' : IDL.Nat,
+  'longDescription' : IDL.Text,
+});
+export const Product = IDL.Record({
+  'id' : IDL.Text,
+  'displayOrder' : IDL.Nat,
+  'name' : IDL.Text,
+  'description' : IDL.Text,
+  'variants' : IDL.Vec(ProductVariant),
+  'imageUrl' : IDL.Text,
+  'shortDescription' : IDL.Text,
+  'isVisible' : IDL.Bool,
+  'category' : IDL.Text,
+  'benefits' : IDL.Vec(IDL.Text),
+  'price' : IDL.Nat,
+  'longDescription' : IDL.Text,
+});
+export const CouponValidation = IDL.Variant({
+  'Exhausted' : IDL.Null,
+  'Inactive' : IDL.Null,
+  'NotFound' : IDL.Null,
+  'Valid' : IDL.Nat,
+  'Expired' : IDL.Null,
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
@@ -20,14 +107,52 @@ export const ShoppingItem = IDL.Record({
   'priceInCents' : IDL.Nat,
   'productDescription' : IDL.Text,
 });
-export const Product = IDL.Record({
+export const OrderStatus = IDL.Variant({
+  'Delivered' : IDL.Null,
+  'Confirmed' : IDL.Null,
+  'Cancelled' : IDL.Null,
+  'Shipped' : IDL.Null,
+  'Pending' : IDL.Null,
+});
+export const PaymentMethod = IDL.Variant({
+  'WhatsApp' : IDL.Null,
+  'Stripe' : IDL.Null,
+});
+export const OrderItem = IDL.Record({
+  'variantLabel' : IDL.Text,
+  'productId' : IDL.Text,
+  'productName' : IDL.Text,
+  'variantId' : IDL.Text,
+  'quantity' : IDL.Nat,
+  'unitPrice' : IDL.Nat,
+});
+export const Order = IDL.Record({
   'id' : IDL.Text,
-  'name' : IDL.Text,
-  'description' : IDL.Text,
-  'imageUrl' : IDL.Text,
-  'category' : IDL.Text,
-  'benefits' : IDL.Vec(IDL.Text),
-  'price' : IDL.Nat,
+  'customerName' : IDL.Text,
+  'status' : OrderStatus,
+  'paymentMethod' : PaymentMethod,
+  'createdAt' : Timestamp,
+  'email' : IDL.Text,
+  'totalAmount' : IDL.Nat,
+  'address' : IDL.Text,
+  'phone' : IDL.Text,
+  'items' : IDL.Vec(OrderItem),
+});
+export const AnalyticsSummary = IDL.Record({
+  'totalOrders' : IDL.Nat,
+  'pendingOrders' : IDL.Nat,
+  'totalRevenue' : IDL.Nat,
+  'deliveredOrders' : IDL.Nat,
+});
+export const SiteSettings = IDL.Record({
+  'announcementBannerText' : IDL.Text,
+  'whatsappOrderEnabled' : IDL.Bool,
+  'maintenanceMode' : IDL.Bool,
+  'whatsappNumber' : IDL.Text,
+  'stripeEnabled' : IDL.Bool,
+  'contactEmail' : IDL.Text,
+  'footerText' : IDL.Text,
+  'showAnnouncementBanner' : IDL.Bool,
 });
 export const StripeSessionStatus = IDL.Variant({
   'completed' : IDL.Record({
@@ -36,9 +161,24 @@ export const StripeSessionStatus = IDL.Variant({
   }),
   'failed' : IDL.Record({ 'error' : IDL.Text }),
 });
+export const TopProduct = IDL.Record({
+  'revenue' : IDL.Nat,
+  'productId' : IDL.Text,
+  'productName' : IDL.Text,
+  'orderCount' : IDL.Nat,
+});
 export const StripeConfiguration = IDL.Record({
   'allowedCountries' : IDL.Vec(IDL.Text),
   'secretKey' : IDL.Text,
+});
+export const OrderInput = IDL.Record({
+  'customerName' : IDL.Text,
+  'paymentMethod' : PaymentMethod,
+  'email' : IDL.Text,
+  'totalAmount' : IDL.Nat,
+  'address' : IDL.Text,
+  'phone' : IDL.Text,
+  'items' : IDL.Vec(OrderItem),
 });
 export const ContactMessage = IDL.Record({
   'name' : IDL.Text,
@@ -63,33 +203,188 @@ export const TransformationOutput = IDL.Record({
   'body' : IDL.Vec(IDL.Nat8),
   'headers' : IDL.Vec(http_header),
 });
+export const SiteSettingsInput = IDL.Record({
+  'announcementBannerText' : IDL.Opt(IDL.Text),
+  'whatsappOrderEnabled' : IDL.Opt(IDL.Bool),
+  'maintenanceMode' : IDL.Opt(IDL.Bool),
+  'whatsappNumber' : IDL.Opt(IDL.Text),
+  'stripeEnabled' : IDL.Opt(IDL.Bool),
+  'contactEmail' : IDL.Opt(IDL.Text),
+  'footerText' : IDL.Opt(IDL.Text),
+  'showAnnouncementBanner' : IDL.Opt(IDL.Bool),
+});
 
 export const idlService = IDL.Service({
   '_initializeAccessControl' : IDL.Func([], [], []),
+  'addCoupon' : IDL.Func([CouponInput], [Coupon], []),
+  'addFAQ' : IDL.Func([FaqItemInput], [FaqItem], []),
+  'addHeroSlide' : IDL.Func([HeroSlideInput], [HeroSlide], []),
+  'addProduct' : IDL.Func([ProductInput], [Product], []),
+  'adminLogin' : IDL.Func(
+      [IDL.Text, IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text })],
+      [],
+    ),
+  'adminLogout' : IDL.Func([IDL.Text], [], []),
+  'applyCoupon' : IDL.Func([IDL.Text], [CouponValidation], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'changeAdminPassword' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+      [],
+    ),
   'createCheckoutSession' : IDL.Func(
       [IDL.Vec(ShoppingItem), IDL.Text, IDL.Text],
       [IDL.Text],
       [],
     ),
+  'createCoupon' : IDL.Func([CouponInput], [Coupon], []),
+  'deleteCoupon' : IDL.Func([IDL.Text], [IDL.Bool], []),
+  'deleteFAQ' : IDL.Func([IDL.Text], [IDL.Bool], []),
+  'deleteFaqItem' : IDL.Func([IDL.Text], [IDL.Bool], []),
+  'deleteHeroSlide' : IDL.Func([IDL.Text], [IDL.Bool], []),
+  'deleteProduct' : IDL.Func([IDL.Text], [IDL.Bool], []),
+  'getAdminCoupons' : IDL.Func([], [IDL.Vec(Coupon)], []),
+  'getAdminOrders' : IDL.Func([], [IDL.Vec(Order)], []),
+  'getAdminProducts' : IDL.Func([], [IDL.Vec(Product)], []),
+  'getAnalyticsSummary' : IDL.Func([], [AnalyticsSummary], []),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getCoupons' : IDL.Func([], [IDL.Vec(Coupon)], []),
+  'getDashboardStats' : IDL.Func([], [AnalyticsSummary], []),
+  'getFAQs' : IDL.Func([], [IDL.Vec(FaqItem)], ['query']),
+  'getFaqItems' : IDL.Func([], [IDL.Vec(FaqItem)], ['query']),
+  'getHeroSlides' : IDL.Func([], [IDL.Vec(HeroSlide)], ['query']),
+  'getOrder' : IDL.Func([IDL.Text], [IDL.Opt(Order)], []),
+  'getOrders' : IDL.Func([], [IDL.Vec(Order)], []),
   'getProduct' : IDL.Func([IDL.Text], [IDL.Opt(Product)], ['query']),
   'getProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
+  'getRecentOrders' : IDL.Func([IDL.Nat], [IDL.Vec(Order)], []),
+  'getSiteSettings' : IDL.Func([], [SiteSettings], ['query']),
   'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
+  'getTopProducts' : IDL.Func([IDL.Nat], [IDL.Vec(TopProduct)], []),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
   'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
+  'storeOrder' : IDL.Func([OrderInput], [Order], []),
   'submitContact' : IDL.Func([ContactMessage], [IDL.Bool], []),
+  'toggleCoupon' : IDL.Func([IDL.Text], [IDL.Opt(Coupon)], []),
+  'toggleProductVisibility' : IDL.Func([IDL.Text], [IDL.Opt(Product)], []),
   'transform' : IDL.Func(
       [TransformationInput],
       [TransformationOutput],
       ['query'],
     ),
+  'updateCoupon' : IDL.Func([IDL.Text, CouponInput], [IDL.Opt(Coupon)], []),
+  'updateFAQ' : IDL.Func([IDL.Text, FaqItemInput], [IDL.Opt(FaqItem)], []),
+  'updateHeroSlide' : IDL.Func(
+      [IDL.Text, HeroSlideInput],
+      [IDL.Opt(HeroSlide)],
+      [],
+    ),
+  'updateOrderStatus' : IDL.Func([IDL.Text, OrderStatus], [IDL.Opt(Order)], []),
+  'updateProduct' : IDL.Func([IDL.Text, ProductInput], [IDL.Opt(Product)], []),
+  'updateSiteSettings' : IDL.Func([SiteSettings], [SiteSettings], []),
+  'updateSiteSettingsPartial' : IDL.Func(
+      [SiteSettingsInput],
+      [SiteSettings],
+      [],
+    ),
+  'upsertFaqItem' : IDL.Func([FaqItemInput], [FaqItem], []),
+  'upsertHeroSlide' : IDL.Func([HeroSlideInput], [HeroSlide], []),
+  'validateAdminSession' : IDL.Func([IDL.Text], [IDL.Bool], []),
+  'validateCoupon' : IDL.Func([IDL.Text], [CouponValidation], ['query']),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const Timestamp = IDL.Int;
+  const CouponInput = IDL.Record({
+    'expiryDate' : IDL.Opt(Timestamp),
+    'code' : IDL.Text,
+    'discountPercent' : IDL.Nat,
+    'isActive' : IDL.Bool,
+    'maxUses' : IDL.Opt(IDL.Nat),
+  });
+  const Coupon = IDL.Record({
+    'expiryDate' : IDL.Opt(Timestamp),
+    'code' : IDL.Text,
+    'usageCount' : IDL.Nat,
+    'discountPercent' : IDL.Nat,
+    'isActive' : IDL.Bool,
+    'maxUses' : IDL.Opt(IDL.Nat),
+  });
+  const FaqItemInput = IDL.Record({
+    'id' : IDL.Text,
+    'question' : IDL.Text,
+    'displayOrder' : IDL.Nat,
+    'answer' : IDL.Text,
+    'isVisible' : IDL.Bool,
+  });
+  const FaqItem = IDL.Record({
+    'id' : IDL.Text,
+    'question' : IDL.Text,
+    'displayOrder' : IDL.Nat,
+    'answer' : IDL.Text,
+    'isVisible' : IDL.Bool,
+  });
+  const HeroSlideInput = IDL.Record({
+    'id' : IDL.Text,
+    'title' : IDL.Text,
+    'displayOrder' : IDL.Nat,
+    'imageUrl' : IDL.Text,
+    'isVisible' : IDL.Bool,
+    'subtitle' : IDL.Text,
+  });
+  const HeroSlide = IDL.Record({
+    'id' : IDL.Text,
+    'title' : IDL.Text,
+    'displayOrder' : IDL.Nat,
+    'imageUrl' : IDL.Text,
+    'isVisible' : IDL.Bool,
+    'subtitle' : IDL.Text,
+  });
+  const ProductVariant = IDL.Record({
+    'variantLabel' : IDL.Text,
+    'stock' : IDL.Nat,
+    'variantId' : IDL.Text,
+    'price' : IDL.Nat,
+  });
+  const ProductInput = IDL.Record({
+    'id' : IDL.Text,
+    'displayOrder' : IDL.Nat,
+    'name' : IDL.Text,
+    'description' : IDL.Text,
+    'variants' : IDL.Vec(ProductVariant),
+    'imageUrl' : IDL.Text,
+    'shortDescription' : IDL.Text,
+    'isVisible' : IDL.Bool,
+    'category' : IDL.Text,
+    'benefits' : IDL.Vec(IDL.Text),
+    'price' : IDL.Nat,
+    'longDescription' : IDL.Text,
+  });
+  const Product = IDL.Record({
+    'id' : IDL.Text,
+    'displayOrder' : IDL.Nat,
+    'name' : IDL.Text,
+    'description' : IDL.Text,
+    'variants' : IDL.Vec(ProductVariant),
+    'imageUrl' : IDL.Text,
+    'shortDescription' : IDL.Text,
+    'isVisible' : IDL.Bool,
+    'category' : IDL.Text,
+    'benefits' : IDL.Vec(IDL.Text),
+    'price' : IDL.Nat,
+    'longDescription' : IDL.Text,
+  });
+  const CouponValidation = IDL.Variant({
+    'Exhausted' : IDL.Null,
+    'Inactive' : IDL.Null,
+    'NotFound' : IDL.Null,
+    'Valid' : IDL.Nat,
+    'Expired' : IDL.Null,
+  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
@@ -102,14 +397,52 @@ export const idlFactory = ({ IDL }) => {
     'priceInCents' : IDL.Nat,
     'productDescription' : IDL.Text,
   });
-  const Product = IDL.Record({
+  const OrderStatus = IDL.Variant({
+    'Delivered' : IDL.Null,
+    'Confirmed' : IDL.Null,
+    'Cancelled' : IDL.Null,
+    'Shipped' : IDL.Null,
+    'Pending' : IDL.Null,
+  });
+  const PaymentMethod = IDL.Variant({
+    'WhatsApp' : IDL.Null,
+    'Stripe' : IDL.Null,
+  });
+  const OrderItem = IDL.Record({
+    'variantLabel' : IDL.Text,
+    'productId' : IDL.Text,
+    'productName' : IDL.Text,
+    'variantId' : IDL.Text,
+    'quantity' : IDL.Nat,
+    'unitPrice' : IDL.Nat,
+  });
+  const Order = IDL.Record({
     'id' : IDL.Text,
-    'name' : IDL.Text,
-    'description' : IDL.Text,
-    'imageUrl' : IDL.Text,
-    'category' : IDL.Text,
-    'benefits' : IDL.Vec(IDL.Text),
-    'price' : IDL.Nat,
+    'customerName' : IDL.Text,
+    'status' : OrderStatus,
+    'paymentMethod' : PaymentMethod,
+    'createdAt' : Timestamp,
+    'email' : IDL.Text,
+    'totalAmount' : IDL.Nat,
+    'address' : IDL.Text,
+    'phone' : IDL.Text,
+    'items' : IDL.Vec(OrderItem),
+  });
+  const AnalyticsSummary = IDL.Record({
+    'totalOrders' : IDL.Nat,
+    'pendingOrders' : IDL.Nat,
+    'totalRevenue' : IDL.Nat,
+    'deliveredOrders' : IDL.Nat,
+  });
+  const SiteSettings = IDL.Record({
+    'announcementBannerText' : IDL.Text,
+    'whatsappOrderEnabled' : IDL.Bool,
+    'maintenanceMode' : IDL.Bool,
+    'whatsappNumber' : IDL.Text,
+    'stripeEnabled' : IDL.Bool,
+    'contactEmail' : IDL.Text,
+    'footerText' : IDL.Text,
+    'showAnnouncementBanner' : IDL.Bool,
   });
   const StripeSessionStatus = IDL.Variant({
     'completed' : IDL.Record({
@@ -118,9 +451,24 @@ export const idlFactory = ({ IDL }) => {
     }),
     'failed' : IDL.Record({ 'error' : IDL.Text }),
   });
+  const TopProduct = IDL.Record({
+    'revenue' : IDL.Nat,
+    'productId' : IDL.Text,
+    'productName' : IDL.Text,
+    'orderCount' : IDL.Nat,
+  });
   const StripeConfiguration = IDL.Record({
     'allowedCountries' : IDL.Vec(IDL.Text),
     'secretKey' : IDL.Text,
+  });
+  const OrderInput = IDL.Record({
+    'customerName' : IDL.Text,
+    'paymentMethod' : PaymentMethod,
+    'email' : IDL.Text,
+    'totalAmount' : IDL.Nat,
+    'address' : IDL.Text,
+    'phone' : IDL.Text,
+    'items' : IDL.Vec(OrderItem),
   });
   const ContactMessage = IDL.Record({
     'name' : IDL.Text,
@@ -142,28 +490,104 @@ export const idlFactory = ({ IDL }) => {
     'body' : IDL.Vec(IDL.Nat8),
     'headers' : IDL.Vec(http_header),
   });
+  const SiteSettingsInput = IDL.Record({
+    'announcementBannerText' : IDL.Opt(IDL.Text),
+    'whatsappOrderEnabled' : IDL.Opt(IDL.Bool),
+    'maintenanceMode' : IDL.Opt(IDL.Bool),
+    'whatsappNumber' : IDL.Opt(IDL.Text),
+    'stripeEnabled' : IDL.Opt(IDL.Bool),
+    'contactEmail' : IDL.Opt(IDL.Text),
+    'footerText' : IDL.Opt(IDL.Text),
+    'showAnnouncementBanner' : IDL.Opt(IDL.Bool),
+  });
   
   return IDL.Service({
     '_initializeAccessControl' : IDL.Func([], [], []),
+    'addCoupon' : IDL.Func([CouponInput], [Coupon], []),
+    'addFAQ' : IDL.Func([FaqItemInput], [FaqItem], []),
+    'addHeroSlide' : IDL.Func([HeroSlideInput], [HeroSlide], []),
+    'addProduct' : IDL.Func([ProductInput], [Product], []),
+    'adminLogin' : IDL.Func(
+        [IDL.Text, IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text })],
+        [],
+      ),
+    'adminLogout' : IDL.Func([IDL.Text], [], []),
+    'applyCoupon' : IDL.Func([IDL.Text], [CouponValidation], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'changeAdminPassword' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+        [],
+      ),
     'createCheckoutSession' : IDL.Func(
         [IDL.Vec(ShoppingItem), IDL.Text, IDL.Text],
         [IDL.Text],
         [],
       ),
+    'createCoupon' : IDL.Func([CouponInput], [Coupon], []),
+    'deleteCoupon' : IDL.Func([IDL.Text], [IDL.Bool], []),
+    'deleteFAQ' : IDL.Func([IDL.Text], [IDL.Bool], []),
+    'deleteFaqItem' : IDL.Func([IDL.Text], [IDL.Bool], []),
+    'deleteHeroSlide' : IDL.Func([IDL.Text], [IDL.Bool], []),
+    'deleteProduct' : IDL.Func([IDL.Text], [IDL.Bool], []),
+    'getAdminCoupons' : IDL.Func([], [IDL.Vec(Coupon)], []),
+    'getAdminOrders' : IDL.Func([], [IDL.Vec(Order)], []),
+    'getAdminProducts' : IDL.Func([], [IDL.Vec(Product)], []),
+    'getAnalyticsSummary' : IDL.Func([], [AnalyticsSummary], []),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getCoupons' : IDL.Func([], [IDL.Vec(Coupon)], []),
+    'getDashboardStats' : IDL.Func([], [AnalyticsSummary], []),
+    'getFAQs' : IDL.Func([], [IDL.Vec(FaqItem)], ['query']),
+    'getFaqItems' : IDL.Func([], [IDL.Vec(FaqItem)], ['query']),
+    'getHeroSlides' : IDL.Func([], [IDL.Vec(HeroSlide)], ['query']),
+    'getOrder' : IDL.Func([IDL.Text], [IDL.Opt(Order)], []),
+    'getOrders' : IDL.Func([], [IDL.Vec(Order)], []),
     'getProduct' : IDL.Func([IDL.Text], [IDL.Opt(Product)], ['query']),
     'getProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
+    'getRecentOrders' : IDL.Func([IDL.Nat], [IDL.Vec(Order)], []),
+    'getSiteSettings' : IDL.Func([], [SiteSettings], ['query']),
     'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
+    'getTopProducts' : IDL.Func([IDL.Nat], [IDL.Vec(TopProduct)], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
     'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
+    'storeOrder' : IDL.Func([OrderInput], [Order], []),
     'submitContact' : IDL.Func([ContactMessage], [IDL.Bool], []),
+    'toggleCoupon' : IDL.Func([IDL.Text], [IDL.Opt(Coupon)], []),
+    'toggleProductVisibility' : IDL.Func([IDL.Text], [IDL.Opt(Product)], []),
     'transform' : IDL.Func(
         [TransformationInput],
         [TransformationOutput],
         ['query'],
       ),
+    'updateCoupon' : IDL.Func([IDL.Text, CouponInput], [IDL.Opt(Coupon)], []),
+    'updateFAQ' : IDL.Func([IDL.Text, FaqItemInput], [IDL.Opt(FaqItem)], []),
+    'updateHeroSlide' : IDL.Func(
+        [IDL.Text, HeroSlideInput],
+        [IDL.Opt(HeroSlide)],
+        [],
+      ),
+    'updateOrderStatus' : IDL.Func(
+        [IDL.Text, OrderStatus],
+        [IDL.Opt(Order)],
+        [],
+      ),
+    'updateProduct' : IDL.Func(
+        [IDL.Text, ProductInput],
+        [IDL.Opt(Product)],
+        [],
+      ),
+    'updateSiteSettings' : IDL.Func([SiteSettings], [SiteSettings], []),
+    'updateSiteSettingsPartial' : IDL.Func(
+        [SiteSettingsInput],
+        [SiteSettings],
+        [],
+      ),
+    'upsertFaqItem' : IDL.Func([FaqItemInput], [FaqItem], []),
+    'upsertHeroSlide' : IDL.Func([HeroSlideInput], [HeroSlide], []),
+    'validateAdminSession' : IDL.Func([IDL.Text], [IDL.Bool], []),
+    'validateCoupon' : IDL.Func([IDL.Text], [CouponValidation], ['query']),
   });
 };
 

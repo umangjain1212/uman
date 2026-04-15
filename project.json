@@ -1,26 +1,23 @@
 {
-  "overview": "Farm72 is a premium e-commerce website for pure cold-pressed oils and Buransh Juice, featuring SEO optimization, a dedicated Buransh Juice benefits page, customer star ratings on all products, and image lazy loading for fast performance.",
+  "overview": "Farm72 is a premium e-commerce website for pure cold-pressed oils and Buransh Juice, with a full admin panel for the owner to manage products, orders, coupons, inventory, and site content — all secured with owner-only login.",
   "features": [
-    "SEO meta tags and JSON-LD structured data on all pages",
-    "Image lazy loading for faster page load",
-    "Dedicated Buransh Juice benefits landing page",
-    "Customer star ratings and reviews on product pages",
-    "Hero carousel with 6 custom images",
-    "Product variants with 25% discount pricing",
-    "WhatsApp order and popup",
-    "Hidden coupon code system",
-    "Stripe checkout",
-    "FAQ, Refund Policy, and Terms pages"
+    "Secure owner-only admin login",
+    "Product management with image uploads",
+    "Orders dashboard with status tracking",
+    "Coupon code management (FARM10 and more)",
+    "Analytics with sales and revenue charts",
+    "Inventory and stock management",
+    "Content management for hero slider and FAQ",
+    "Customer-facing shop with cart and checkout"
   ],
-  "category": "e-commerce",
+  "category": "ecommerce",
   "tags": [
-    "e-commerce",
-    "organic",
-    "cold-pressed-oils",
-    "buransh-juice",
-    "seo",
-    "reviews",
-    "farm72"
+    "ecommerce",
+    "admin-panel",
+    "cold-pressed-oil",
+    "farm72",
+    "motoko",
+    "react"
   ],
-  "last_updated": "2026-04-15T11:28:10.153Z"
+  "last_updated": "2026-04-15T12:51:45.966Z"
 }

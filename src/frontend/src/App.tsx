@@ -9,6 +9,7 @@ import {
 import { Suspense, lazy } from "react";
 import { Toaster } from "sonner";
 
+// ── Public pages ─────────────────────────────────────────────────────────────
 const Home = lazy(() =>
   import("@/pages/Home").then((m) => ({ default: m.Home })),
 );
@@ -41,6 +42,45 @@ const BuranshJuice = lazy(() =>
   import("@/pages/BuranshJuice").then((m) => ({ default: m.BuranshJuice })),
 );
 
+// ── Admin pages ───────────────────────────────────────────────────────────────
+const AdminLogin = lazy(() =>
+  import("@/pages/admin/AdminLogin").then((m) => ({ default: m.AdminLogin })),
+);
+const AdminDashboard = lazy(() =>
+  import("@/pages/admin/AdminDashboard").then((m) => ({
+    default: m.AdminDashboard,
+  })),
+);
+const AdminProducts = lazy(() =>
+  import("@/pages/admin/AdminProducts").then((m) => ({
+    default: m.AdminProducts,
+  })),
+);
+const AdminProductForm = lazy(() =>
+  import("@/pages/admin/AdminProductForm").then((m) => ({
+    default: m.AdminProductForm,
+  })),
+);
+const AdminOrders = lazy(() =>
+  import("@/pages/admin/AdminOrders").then((m) => ({ default: m.AdminOrders })),
+);
+const AdminCoupons = lazy(() =>
+  import("@/pages/admin/AdminCoupons").then((m) => ({
+    default: m.AdminCoupons,
+  })),
+);
+const AdminContent = lazy(() =>
+  import("@/pages/admin/AdminContent").then((m) => ({
+    default: m.AdminContent,
+  })),
+);
+const AdminSettings = lazy(() =>
+  import("@/pages/admin/AdminSettings").then((m) => ({
+    default: m.AdminSettings,
+  })),
+);
+
+// ── Loaders ───────────────────────────────────────────────────────────────────
 function PageLoader() {
   return (
     <div className="flex-1 flex items-center justify-center min-h-[40vh]">
@@ -49,10 +89,20 @@ function PageLoader() {
   );
 }
 
+function AdminLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-muted/30">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
+
+// ── Route tree ────────────────────────────────────────────────────────────────
+// Public root — wrapped in Layout (Navbar + Footer)
 const rootRoute = createRootRoute({
   component: () => (
-    <Layout>
-      <Suspense fallback={<PageLoader />}>
+    <>
+      <Suspense fallback={<AdminLoader />}>
         <Outlet />
       </Suspense>
       <Toaster
@@ -65,88 +115,157 @@ const rootRoute = createRootRoute({
           },
         }}
       />
+    </>
+  ),
+});
+
+// Public layout route
+const publicLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "public-layout",
+  component: () => (
+    <Layout>
+      <Suspense fallback={<PageLoader />}>
+        <Outlet />
+      </Suspense>
     </Layout>
   ),
 });
 
 const homeRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => publicLayoutRoute,
   path: "/",
   component: Home,
 });
-
 const shopRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => publicLayoutRoute,
   path: "/shop",
   component: Shop,
 });
-
 const productRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => publicLayoutRoute,
   path: "/product/$id",
   component: ProductDetail,
 });
-
 const cartRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => publicLayoutRoute,
   path: "/cart",
   component: Cart,
 });
-
 const checkoutRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => publicLayoutRoute,
   path: "/checkout",
   component: Checkout,
 });
-
 const aboutRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => publicLayoutRoute,
   path: "/about",
   component: About,
 });
-
 const contactRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => publicLayoutRoute,
   path: "/contact",
   component: Contact,
 });
-
 const refundPolicyRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => publicLayoutRoute,
   path: "/refund-policy",
   component: RefundPolicy,
 });
-
 const termsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => publicLayoutRoute,
   path: "/terms",
   component: Terms,
 });
-
 const faqRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => publicLayoutRoute,
   path: "/faq",
   component: FAQ,
 });
-
 const buranshRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => publicLayoutRoute,
   path: "/buransh",
   component: BuranshJuice,
 });
 
+// Admin routes (no Layout wrapper)
+const adminLoginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/login",
+  component: AdminLogin,
+});
+const adminDashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/dashboard",
+  component: AdminDashboard,
+});
+const adminProductsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/products",
+  component: AdminProducts,
+});
+const adminProductNewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/products/new",
+  component: AdminProductForm,
+});
+const adminProductEditRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/products/$id/edit",
+  component: AdminProductForm,
+});
+const adminOrdersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/orders",
+  component: AdminOrders,
+});
+const adminCouponsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/coupons",
+  component: AdminCoupons,
+});
+const adminContentRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/content",
+  component: AdminContent,
+});
+const adminSettingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/settings",
+  component: AdminSettings,
+});
+
+// Redirect /admin → /admin/dashboard
+const adminIndexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin",
+  component: AdminDashboard,
+});
+
 const routeTree = rootRoute.addChildren([
-  homeRoute,
-  shopRoute,
-  productRoute,
-  cartRoute,
-  checkoutRoute,
-  aboutRoute,
-  contactRoute,
-  refundPolicyRoute,
-  termsRoute,
-  faqRoute,
-  buranshRoute,
+  publicLayoutRoute.addChildren([
+    homeRoute,
+    shopRoute,
+    productRoute,
+    cartRoute,
+    checkoutRoute,
+    aboutRoute,
+    contactRoute,
+    refundPolicyRoute,
+    termsRoute,
+    faqRoute,
+    buranshRoute,
+  ]),
+  adminLoginRoute,
+  adminIndexRoute,
+  adminDashboardRoute,
+  adminProductsRoute,
+  adminProductNewRoute,
+  adminProductEditRoute,
+  adminOrdersRoute,
+  adminCouponsRoute,
+  adminContentRoute,
+  adminSettingsRoute,
 ]);
 
 const router = createRouter({ routeTree });

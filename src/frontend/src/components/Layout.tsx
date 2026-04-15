@@ -1,9 +1,26 @@
+import { createActor } from "@/backend";
+import type { SiteSettings } from "@/backend.d";
 import { WhatsAppPopup } from "@/components/WhatsAppPopup";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/cartStore";
+import { useActor } from "@caffeineai/core-infrastructure";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Mail, MapPin, Menu, Phone, ShoppingCart, X } from "lucide-react";
 import { useEffect, useState } from "react";
+
+function useSiteSettings() {
+  const { actor, isFetching } = useActor(createActor);
+  return useQuery<SiteSettings>({
+    queryKey: ["siteSettings"],
+    queryFn: async () => {
+      if (!actor) throw new Error("actor not ready");
+      return actor.getSiteSettings();
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 const navLinks = [
   { to: "/", label: "Home" },
@@ -145,6 +162,15 @@ function Navbar() {
 
 function Footer() {
   const year = new Date().getFullYear();
+  const { data: settings } = useSiteSettings();
+
+  const footerText = settings?.footerText?.trim()
+    ? settings.footerText
+    : `© ${year} Farm72. All rights reserved.`;
+
+  const whatsappNumber = settings?.whatsappNumber?.trim()
+    ? settings.whatsappNumber.replace(/\D/g, "")
+    : "917500010488";
 
   return (
     <footer className="bg-primary text-primary-foreground mt-auto">
@@ -178,11 +204,10 @@ function Footer() {
                 info@farm72.in
               </a>
               <a
-                href="tel:+917500010488"
+                href={`tel:+${whatsappNumber}`}
                 className="flex items-center gap-2.5 hover:text-primary-foreground transition-smooth"
               >
-                <Phone className="w-4 h-4 flex-shrink-0" />
-                +91 7500010488
+                <Phone className="w-4 h-4 flex-shrink-0" />+{whatsappNumber}
               </a>
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -236,7 +261,7 @@ function Footer() {
 
         {/* Bottom bar */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-primary-foreground/60">
-          <p>© {year} Farm72. All rights reserved.</p>
+          <p>{footerText}</p>
           <div className="flex items-center gap-4">
             <Link
               to="/refund-policy"

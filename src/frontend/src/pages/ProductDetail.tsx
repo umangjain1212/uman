@@ -1,3 +1,4 @@
+import { createActor } from "@/backend";
 import { ProductCard } from "@/components/ProductCard";
 import { SEO } from "@/components/SEO";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { getProductById, products } from "@/data/products";
 import { useCartStore } from "@/store/cartStore";
+import { useActor } from "@caffeineai/core-infrastructure";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import {
   Check,
@@ -21,14 +23,10 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-// Hidden coupon — works but not shown publicly
-const VALID_COUPONS: Record<string, number> = {
-  FARM10: 10,
-};
-
 export function ProductDetail() {
-  const { id } = useParams({ from: "/product/$id" });
+  const { id } = useParams({ strict: false }) as { id: string };
   const navigate = useNavigate();
+  const { actor } = useActor(createActor);
   const addItem = useCartStore((s) => s.addItem);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const items = useCartStore((s) => s.items);
@@ -110,22 +108,46 @@ export function ProductDetail() {
     if (!Number.isNaN(parsed)) setQty(Math.min(99, Math.max(1, parsed)));
   }
 
-  function handleApplyCoupon() {
+  async function handleApplyCoupon() {
     const code = couponInput.trim().toUpperCase();
     if (!code) {
       setCouponError("Please enter a coupon code.");
       return;
     }
-    if (VALID_COUPONS[code] !== undefined) {
-      setAppliedCoupon(code);
-      setCouponDiscount(VALID_COUPONS[code]);
-      setCouponError("");
-      toast.success(`Coupon applied! ${VALID_COUPONS[code]}% discount`, {
-        description: `Save ₹${Math.round((basePrice * VALID_COUPONS[code]) / 100)} on this product`,
-        duration: 3000,
-      });
-    } else {
-      setCouponError("Invalid coupon code. Please try again.");
+    if (!actor) {
+      setCouponError("Please try again.");
+      return;
+    }
+    try {
+      const result = await actor.validateCoupon(code);
+      if (result.__kind__ === "Valid") {
+        const pct = Number(result.Valid);
+        setAppliedCoupon(code);
+        setCouponDiscount(pct);
+        setCouponError("");
+        toast.success(`Coupon applied! ${pct}% discount`, {
+          description: `Save ₹${Math.round((basePrice * pct) / 100)} on this product`,
+          duration: 3000,
+        });
+      } else if (result.__kind__ === "Expired") {
+        setCouponError("Coupon has expired");
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
+      } else if (result.__kind__ === "Exhausted") {
+        setCouponError("Coupon usage limit reached");
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
+      } else if (result.__kind__ === "Inactive") {
+        setCouponError("Coupon is not active");
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
+      } else {
+        setCouponError("Invalid coupon code");
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
+      }
+    } catch {
+      setCouponError("Invalid coupon code");
       setAppliedCoupon(null);
       setCouponDiscount(0);
     }

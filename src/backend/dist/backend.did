@@ -26,6 +26,14 @@ type TransformationInput =
    context: blob;
    response: http_request_result;
  };
+type TopProduct = 
+ record {
+   orderCount: nat;
+   productId: text;
+   productName: text;
+   revenue: nat;
+ };
+type Timestamp = int;
 type StripeSessionStatus = 
  variant {
    completed: record {
@@ -39,6 +47,28 @@ type StripeConfiguration =
    allowedCountries: vec text;
    secretKey: text;
  };
+type SiteSettingsInput = 
+ record {
+   announcementBannerText: opt text;
+   contactEmail: opt text;
+   footerText: opt text;
+   maintenanceMode: opt bool;
+   showAnnouncementBanner: opt bool;
+   stripeEnabled: opt bool;
+   whatsappNumber: opt text;
+   whatsappOrderEnabled: opt bool;
+ };
+type SiteSettings = 
+ record {
+   announcementBannerText: text;
+   contactEmail: text;
+   footerText: text;
+   maintenanceMode: bool;
+   showAnnouncementBanner: bool;
+   stripeEnabled: bool;
+   whatsappNumber: text;
+   whatsappOrderEnabled: bool;
+ };
 type ShoppingItem = 
  record {
    currency: text;
@@ -47,15 +77,146 @@ type ShoppingItem =
    productName: text;
    quantity: nat;
  };
+type ProductVariant = 
+ record {
+   price: nat;
+   stock: nat;
+   variantId: text;
+   variantLabel: text;
+ };
+type ProductInput = 
+ record {
+   benefits: vec text;
+   category: text;
+   description: text;
+   displayOrder: nat;
+   id: text;
+   imageUrl: text;
+   isVisible: bool;
+   longDescription: text;
+   name: text;
+   price: nat;
+   shortDescription: text;
+   variants: vec ProductVariant;
+ };
 type Product = 
  record {
    benefits: vec text;
    category: text;
    description: text;
+   displayOrder: nat;
    id: text;
    imageUrl: text;
+   isVisible: bool;
+   longDescription: text;
    name: text;
    price: nat;
+   shortDescription: text;
+   variants: vec ProductVariant;
+ };
+type PaymentMethod = 
+ variant {
+   Stripe;
+   WhatsApp;
+ };
+type OrderStatus = 
+ variant {
+   Cancelled;
+   Confirmed;
+   Delivered;
+   Pending;
+   Shipped;
+ };
+type OrderItem = 
+ record {
+   productId: text;
+   productName: text;
+   quantity: nat;
+   unitPrice: nat;
+   variantId: text;
+   variantLabel: text;
+ };
+type OrderInput = 
+ record {
+   address: text;
+   customerName: text;
+   email: text;
+   items: vec OrderItem;
+   paymentMethod: PaymentMethod;
+   phone: text;
+   totalAmount: nat;
+ };
+type Order = 
+ record {
+   address: text;
+   createdAt: Timestamp;
+   customerName: text;
+   email: text;
+   id: text;
+   items: vec OrderItem;
+   paymentMethod: PaymentMethod;
+   phone: text;
+   status: OrderStatus;
+   totalAmount: nat;
+ };
+type HeroSlideInput = 
+ record {
+   displayOrder: nat;
+   id: text;
+   imageUrl: text;
+   isVisible: bool;
+   subtitle: text;
+   title: text;
+ };
+type HeroSlide = 
+ record {
+   displayOrder: nat;
+   id: text;
+   imageUrl: text;
+   isVisible: bool;
+   subtitle: text;
+   title: text;
+ };
+type FaqItemInput = 
+ record {
+   answer: text;
+   displayOrder: nat;
+   id: text;
+   isVisible: bool;
+   question: text;
+ };
+type FaqItem = 
+ record {
+   answer: text;
+   displayOrder: nat;
+   id: text;
+   isVisible: bool;
+   question: text;
+ };
+type CouponValidation = 
+ variant {
+   Exhausted;
+   Expired;
+   Inactive;
+   NotFound;
+   Valid: nat;
+ };
+type CouponInput = 
+ record {
+   code: text;
+   discountPercent: nat;
+   expiryDate: opt Timestamp;
+   isActive: bool;
+   maxUses: opt nat;
+ };
+type Coupon = 
+ record {
+   code: text;
+   discountPercent: nat;
+   expiryDate: opt Timestamp;
+   isActive: bool;
+   maxUses: opt nat;
+   usageCount: nat;
  };
 type ContactMessage = 
  record {
@@ -63,18 +224,75 @@ type ContactMessage =
    message: text;
    name: text;
  };
+type AnalyticsSummary = 
+ record {
+   deliveredOrders: nat;
+   pendingOrders: nat;
+   totalOrders: nat;
+   totalRevenue: nat;
+ };
 service : {
   _initializeAccessControl: () -> ();
+  addCoupon: (input: CouponInput) -> (Coupon);
+  addFAQ: (input: FaqItemInput) -> (FaqItem);
+  addHeroSlide: (input: HeroSlideInput) -> (HeroSlide);
+  addProduct: (input: ProductInput) -> (Product);
+  adminLogin: (username: text, password: text) ->
+   (variant {
+      err: text;
+      ok: text;
+    });
+  adminLogout: (token: text) -> ();
+  applyCoupon: (code: text) -> (CouponValidation);
   assignCallerUserRole: (user: principal, role: UserRole) -> ();
+  changeAdminPassword: (token: text, currentPassword: text, newPassword:
+   text) -> (variant {
+               err: text;
+               ok;
+             });
   createCheckoutSession: (items: vec ShoppingItem, successUrl: text,
    cancelUrl: text) -> (text);
+  createCoupon: (input: CouponInput) -> (Coupon);
+  deleteCoupon: (code: text) -> (bool);
+  deleteFAQ: (id: text) -> (bool);
+  deleteFaqItem: (id: text) -> (bool);
+  deleteHeroSlide: (id: text) -> (bool);
+  deleteProduct: (id: text) -> (bool);
+  getAdminCoupons: () -> (vec Coupon);
+  getAdminOrders: () -> (vec Order);
+  getAdminProducts: () -> (vec Product);
+  getAnalyticsSummary: () -> (AnalyticsSummary);
   getCallerUserRole: () -> (UserRole) query;
+  getCoupons: () -> (vec Coupon);
+  getDashboardStats: () -> (AnalyticsSummary);
+  getFAQs: () -> (vec FaqItem) query;
+  getFaqItems: () -> (vec FaqItem) query;
+  getHeroSlides: () -> (vec HeroSlide) query;
+  getOrder: (id: text) -> (opt Order);
+  getOrders: () -> (vec Order);
   getProduct: (id: text) -> (opt Product) query;
   getProducts: () -> (vec Product) query;
+  getRecentOrders: (limit: nat) -> (vec Order);
+  getSiteSettings: () -> (SiteSettings) query;
   getStripeSessionStatus: (sessionId: text) -> (StripeSessionStatus);
+  getTopProducts: (limit: nat) -> (vec TopProduct);
   isCallerAdmin: () -> (bool) query;
   isStripeConfigured: () -> (bool) query;
   setStripeConfiguration: (config: StripeConfiguration) -> ();
+  storeOrder: (input: OrderInput) -> (Order);
   submitContact: (msg: ContactMessage) -> (bool);
+  toggleCoupon: (code: text) -> (opt Coupon);
+  toggleProductVisibility: (id: text) -> (opt Product);
   transform: (input: TransformationInput) -> (TransformationOutput) query;
+  updateCoupon: (code: text, input: CouponInput) -> (opt Coupon);
+  updateFAQ: (id: text, input: FaqItemInput) -> (opt FaqItem);
+  updateHeroSlide: (id: text, input: HeroSlideInput) -> (opt HeroSlide);
+  updateOrderStatus: (id: text, status: OrderStatus) -> (opt Order);
+  updateProduct: (id: text, input: ProductInput) -> (opt Product);
+  updateSiteSettings: (input: SiteSettings) -> (SiteSettings);
+  updateSiteSettingsPartial: (input: SiteSettingsInput) -> (SiteSettings);
+  upsertFaqItem: (input: FaqItemInput) -> (FaqItem);
+  upsertHeroSlide: (input: HeroSlideInput) -> (HeroSlide);
+  validateAdminSession: (token: text) -> (bool);
+  validateCoupon: (code: text) -> (CouponValidation) query;
 }

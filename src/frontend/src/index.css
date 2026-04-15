@@ -141,6 +141,87 @@
     @apply inline-flex items-center justify-center gap-2 px-6 py-3 font-medium text-sm rounded-lg bg-green-600 text-white transition-smooth hover:bg-green-700 hover:shadow-card-hover active:scale-95;
   }
 
+  /* Admin Dashboard Utilities */
+  .admin-sidebar {
+    @apply bg-primary text-primary-foreground h-screen overflow-y-auto sticky top-0 z-40 transition-smooth;
+  }
+
+  .admin-sidebar-item {
+    @apply flex items-center gap-3 px-4 py-3 text-sm font-medium transition-smooth hover:bg-primary/80 cursor-pointer border-l-4 border-transparent;
+  }
+
+  .admin-sidebar-item-active {
+    @apply border-accent bg-primary/70 text-accent;
+  }
+
+  .admin-header {
+    @apply bg-card border-b border-border sticky top-0 z-30 px-6 py-4 flex items-center justify-between shadow-subtle;
+  }
+
+  .admin-content {
+    @apply bg-background p-6 sm:p-8 min-h-screen;
+  }
+
+  .admin-stat-card {
+    @apply bg-card border border-border rounded-lg p-6 shadow-subtle transition-smooth hover:shadow-card;
+  }
+
+  .admin-stat-value {
+    @apply font-display font-bold text-2xl sm:text-3xl text-primary mt-2;
+  }
+
+  .admin-stat-label {
+    @apply text-muted-foreground text-sm font-medium;
+  }
+
+  .admin-table {
+    @apply w-full border-collapse text-sm;
+  }
+
+  .admin-table-head {
+    @apply bg-muted border-b border-border font-semibold text-foreground;
+  }
+
+  .admin-table-row {
+    @apply border-b border-border hover:bg-muted/50 transition-smooth;
+  }
+
+  .admin-table-row:nth-child(odd) {
+    @apply bg-card;
+  }
+
+  .admin-table-cell {
+    @apply px-4 py-3;
+  }
+
+  .admin-form-group {
+    @apply space-y-2;
+  }
+
+  .admin-form-label {
+    @apply block text-sm font-medium text-foreground;
+  }
+
+  .admin-form-input {
+    @apply w-full px-4 py-2 rounded-md border border-border bg-input text-foreground font-body text-sm transition-smooth focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary;
+  }
+
+  .admin-action-btn {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-1.5 font-medium text-xs rounded-md transition-smooth hover:shadow-subtle active:scale-95;
+  }
+
+  .admin-action-edit {
+    @apply bg-accent/15 text-accent border border-accent/30 hover:bg-accent/20;
+  }
+
+  .admin-action-delete {
+    @apply bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/20;
+  }
+
+  .admin-action-view {
+    @apply bg-primary/15 text-primary border border-primary/30 hover:bg-primary/20;
+  }
+
   .animate-badge-pop {
     animation: badge-pop 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }

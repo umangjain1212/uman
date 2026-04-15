@@ -1,7 +1,33 @@
 // Version: 1.0.0
 type ContactMessage__84138439 = {email : Text; message : Text; name : Text};
+type Coupon__243002030 =
+  {
+    code : Text;
+    discountPercent : Nat;
+    expiryDate : ?Timestamp__301639476;
+    isActive : Bool;
+    maxUses : ?Nat;
+    usageCount : Nat
+  };
 type Data__791452850<K, V> =
   {var count : Nat__490723111; kvs : [var ?(K, V)]};
+type FaqItem__599334758 =
+  {
+    answer : Text;
+    displayOrder : Nat;
+    id : Text;
+    isVisible : Bool;
+    question : Text
+  };
+type HeroSlide__72308354 =
+  {
+    displayOrder : Nat;
+    id : Text;
+    imageUrl : Text;
+    isVisible : Bool;
+    subtitle : Text;
+    title : Text
+  };
 type Internal__8484328<K, V> =
   {children : [var ?Node__46230540<K, V>]; data : Data__791452850<K, V>};
 type Leaf__809889148<K, V> = {data : Data__791452850<K, V>};
@@ -13,8 +39,62 @@ type Nat__490723111 = Nat__920180692;
 type Nat__920180692 = Nat;
 type Node__46230540<K, V> =
   {#internal : Internal__8484328<K, V>; #leaf : Leaf__809889148<K, V>};
+type OrderItem__241319351 =
+  {
+    productId : Text;
+    productName : Text;
+    quantity : Nat;
+    unitPrice : Nat;
+    variantId : Text;
+    variantLabel : Text
+  };
+type OrderStatus__272730104 =
+  {#Cancelled; #Confirmed; #Delivered; #Pending; #Shipped};
+type Order__141779993 =
+  {
+    address : Text;
+    createdAt : Timestamp__301639476;
+    customerName : Text;
+    email : Text;
+    id : Text;
+    items : [OrderItem__241319351];
+    paymentMethod : PaymentMethod__972042942;
+    phone : Text;
+    status : OrderStatus__272730104;
+    totalAmount : Nat
+  };
+type PaymentMethod__972042942 = {#Stripe; #WhatsApp};
+type ProductVariant__512299618 =
+  {price : Nat; stock : Nat; variantId : Text; variantLabel : Text};
+type Product__389207432 =
+  {
+    benefits : [Text];
+    category : Text;
+    description : Text;
+    displayOrder : Nat;
+    id : Text;
+    imageUrl : Text;
+    isVisible : Bool;
+    longDescription : Text;
+    name : Text;
+    price : Nat;
+    shortDescription : Text;
+    variants : [ProductVariant__512299618]
+  };
+type SiteSettings__523338558 =
+  {
+    announcementBannerText : Text;
+    contactEmail : Text;
+    footerText : Text;
+    maintenanceMode : Bool;
+    showAnnouncementBanner : Bool;
+    stripeEnabled : Bool;
+    whatsappNumber : Text;
+    whatsappOrderEnabled : Bool
+  };
 type StripeConfiguration__96897619 =
   {allowedCountries : [Text]; secretKey : Text};
+type Timestamp__301639476 = Int;
 type UserRole__1054455867 = {#admin; #guest; #user};
 actor {
   stable accessControlState :
@@ -22,11 +102,41 @@ actor {
       var adminAssigned : Bool;
       userRoles : Map__605269027<Principal, UserRole__1054455867>
     };
+  stable adminAuth : {var passwordHash : Text};
+  stable adminSessions :
+    {var root : Node__46230540<Text, Int>; var size : Nat__490723111};
   stable contactMessages :
     {
       var blockIndex : Nat__490723111;
       var blocks : [var [var ?ContactMessage__84138439]];
       var elementIndex : Nat__490723111
     };
+  stable coupons :
+    {
+      var root : Node__46230540<Text, Coupon__243002030>;
+      var size : Nat__490723111
+    };
+  stable faqItems :
+    {
+      var root : Node__46230540<Text, FaqItem__599334758>;
+      var size : Nat__490723111
+    };
+  stable heroSlides :
+    {
+      var root : Node__46230540<Text, HeroSlide__72308354>;
+      var size : Nat__490723111
+    };
+  stable nextOrderIdRef : {var value : Nat};
+  stable orders :
+    {
+      var root : Node__46230540<Text, Order__141779993>;
+      var size : Nat__490723111
+    };
+  stable products :
+    {
+      var root : Node__46230540<Text, Product__389207432>;
+      var size : Nat__490723111
+    };
+  stable siteSettingsRef : {var value : SiteSettings__523338558};
   stable var stripeConfiguration : ?StripeConfiguration__96897619
 };
