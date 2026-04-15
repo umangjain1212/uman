@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,8 +41,8 @@ const contactInfo = [
   {
     icon: Phone,
     label: "Phone",
-    value: "+91-9876543210",
-    href: "tel:+919876543210",
+    value: "+91 7500010488",
+    href: "tel:+917500010488",
   },
   {
     icon: MapPin,
@@ -137,6 +138,10 @@ export function Contact() {
 
   return (
     <div className="min-h-screen">
+      <SEO
+        title="Contact Farm72 | Cold Pressed Oils &amp; Buransh Juice"
+        description="Reach Farm72 for orders, queries or feedback about our pure cold-pressed oils and Buransh Juice."
+      />
       {/* Hero */}
       <section className="green-gradient-bg leaf-pattern py-20 border-b border-border">
         <div className="container mx-auto px-4 sm:px-6 text-center">
@@ -170,29 +175,29 @@ export function Contact() {
               className="flex flex-col gap-6"
             >
               {/* Contact Info Card */}
-              <div className="bg-primary rounded-2xl p-8 text-primary-foreground">
-                <h2 className="font-display text-xl font-bold mb-6">
+              <div className="bg-card rounded-2xl p-8 border border-green-200 shadow-card">
+                <h2 className="font-display text-xl font-bold text-primary mb-6">
                   Reach Us Directly
                 </h2>
                 <div className="flex flex-col gap-5">
                   {contactInfo.map((item) => (
                     <div key={item.label} className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-primary-foreground/15 flex items-center justify-center flex-shrink-0">
-                        <item.icon className="w-5 h-5 text-primary-foreground" />
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <item.icon className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <p className="text-primary-foreground/70 text-xs font-medium uppercase tracking-wide mb-0.5">
+                        <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-0.5">
                           {item.label}
                         </p>
                         {item.href ? (
                           <a
                             href={item.href}
-                            className="text-primary-foreground font-medium hover:text-primary-foreground/80 transition-smooth"
+                            className="text-primary font-medium hover:text-primary/80 transition-smooth"
                           >
                             {item.value}
                           </a>
                         ) : (
-                          <p className="text-primary-foreground font-medium">
+                          <p className="text-foreground font-medium">
                             {item.value}
                           </p>
                         )}
@@ -203,10 +208,10 @@ export function Contact() {
 
                 {/* WhatsApp CTA */}
                 <a
-                  href="https://wa.me/919876543210"
+                  href="https://wa.me/917500010488"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-6 flex items-center gap-2 w-full justify-center px-4 py-3 rounded-xl bg-primary-foreground/15 hover:bg-primary-foreground/25 transition-smooth font-medium text-primary-foreground text-sm"
+                  className="mt-6 flex items-center gap-2 w-full justify-center px-4 py-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-smooth font-medium text-sm"
                   data-ocid="contact-whatsapp"
                 >
                   <MessageCircle className="w-4 h-4" />

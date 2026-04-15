@@ -1,114 +1,137 @@
+export interface ProductVariant {
+  size: string;
+  price: number;
+  originalPrice: number;
+}
+
 export interface Product {
   id: string;
   name: string;
   price: number;
+  originalPrice: number;
   imageUrl: string;
   description: string;
   longDescription: string;
+  shortDescription: string;
   category: string;
   benefits: string[];
   weight: string;
   tag?: string;
+  variants?: ProductVariant[];
 }
 
 export const products: Product[] = [
   {
     id: "coconut-oil",
-    name: "Cold Pressed Coconut Oil",
-    price: 450,
-    imageUrl:
-      "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=800&q=80",
+    name: "Coconut Oil",
+    price: 1499,
+    originalPrice: 1999,
+    imageUrl: "/assets/images/coconut-oil.png",
+    shortDescription:
+      "Cold pressed using traditional Kacchi Ghani method. 100% natural and chemical-free oil.",
     description:
-      "Virgin cold-pressed from fresh coconuts. Rich in lauric acid for skin, hair & immunity.",
+      "Premium cold-pressed coconut oil extracted using traditional Kacchi Ghani method. 100% pure, natural, and chemical-free.",
     longDescription:
       "Our Cold Pressed Coconut Oil is extracted using the traditional Kacchi Ghani process without heat, preserving all the natural nutrients, antioxidants, and medium-chain fatty acids. Perfect for cooking, skincare, and haircare.",
     category: "Oils",
     benefits: [
-      "Rich in lauric acid — boosts immunity",
-      "Excellent for cooking at medium heat",
-      "Deep moisturizer for skin & hair",
-      "Supports healthy cholesterol levels",
+      "Cold Pressed",
+      "Chemical Free",
+      "100% Natural",
+      "No Preservatives",
     ],
-    weight: "500 ml",
+    weight: "500 ml / 1 Litre",
     tag: "Bestseller",
+    variants: [
+      { size: "500 ml", price: 749, originalPrice: 999 },
+      { size: "1 litre", price: 1499, originalPrice: 1999 },
+    ],
   },
   {
-    id: "sesame-oil",
-    name: "Cold Pressed Sesame Oil",
-    price: 380,
-    imageUrl:
-      "https://images.unsplash.com/photo-1615485500704-8e990f9900f7?w=800&q=80",
+    id: "sesame-oil-1l",
+    name: "Sesame / Til Oil",
+    price: 899,
+    originalPrice: 1199,
+    imageUrl: "/assets/images/sesame-oil-1l.png",
+    shortDescription:
+      "Cold pressed using traditional Kacchi Ghani method. 100% natural and chemical-free oil.",
     description:
-      "Traditional til oil pressed at low temperature. Packed with Vitamin E & antioxidants.",
+      "Pure cold-pressed sesame oil (Til oil) extracted using traditional Kacchi Ghani method. Rich in nutrients.",
     longDescription:
       "Our Sesame Oil is cold-pressed from premium white sesame seeds at temperatures below 40°C. It retains its natural earthy aroma, vitamin E, and powerful antioxidants — ideal for cooking, massages, and Ayurvedic therapies.",
     category: "Oils",
     benefits: [
-      "High in Vitamin E & B-complex",
-      "Natural anti-inflammatory properties",
-      "Traditional Ayurvedic massage oil",
-      "Enhances flavor in cooking",
+      "Cold Pressed",
+      "Chemical Free",
+      "100% Natural",
+      "No Preservatives",
     ],
-    weight: "500 ml",
+    weight: "500 ml / 1 Litre",
     tag: "Popular",
+    variants: [
+      { size: "Half Liter (500 ml)", price: 549, originalPrice: 732 },
+      { size: "1 Litre", price: 899, originalPrice: 1199 },
+    ],
   },
   {
-    id: "black-mustard-oil",
-    name: "Black Mustard Oil",
-    price: 290,
-    imageUrl:
-      "https://images.unsplash.com/photo-1601039641847-7857b994d704?w=800&q=80",
+    id: "black-mustard-oil-1l",
+    name: "Black Mustard Oil (1 Liter)",
+    price: 499,
+    originalPrice: 665,
+    imageUrl: "/assets/images/black-mustard-oil-1l.png",
+    shortDescription:
+      "Cold pressed using traditional Kacchi Ghani method. 100% natural and chemical-free oil.",
     description:
-      "Pungent cold-pressed black mustard oil. Authentic Kacchi Ghani flavor for traditional cooking.",
+      "Pure cold-pressed black mustard oil with strong aroma. Traditional Kacchi Ghani extraction method.",
     longDescription:
       "Pressed from premium black mustard seeds using the Kacchi Ghani method, this oil has a bold, pungent aroma that is characteristic of authentic Indian cuisine. Rich in glucosinolates and omega-3 fatty acids.",
     category: "Oils",
-    benefits: [
-      "Natural antibacterial & antifungal",
-      "Rich in omega-3 & omega-6",
-      "Stimulates digestion & appetite",
-      "Traditional Indian cooking essential",
-    ],
-    weight: "500 ml",
+    benefits: ["Cold Pressed", "Chemical Free", "100% Natural", "Strong Aroma"],
+    weight: "1 Liter",
+    variants: [{ size: "1 Liter", price: 499, originalPrice: 665 }],
   },
   {
-    id: "yellow-mustard-oil",
-    name: "Yellow Mustard Oil",
-    price: 270,
-    imageUrl:
-      "https://images.unsplash.com/photo-1559181567-c3190b0ada43?w=800&q=80",
+    id: "yellow-mustard-oil-1l",
+    name: "Yellow Mustard Oil (1 Liter)",
+    price: 599,
+    originalPrice: 799,
+    imageUrl: "/assets/images/yellow-mustard-oil-1l.png",
+    shortDescription:
+      "Cold pressed using traditional Kacchi Ghani method. 100% natural and chemical-free oil.",
     description:
-      "Mild & golden cold-pressed yellow mustard oil. Perfect for everyday Indian cooking.",
+      "Pure cold-pressed yellow mustard oil with mild flavor. Traditional Kacchi Ghani extraction method.",
     longDescription:
       "Our Yellow Mustard Oil has a milder, sweeter profile compared to black mustard, making it perfect for everyday cooking. Cold-pressed to retain its natural MUFA content and characteristic yellow color.",
     category: "Oils",
-    benefits: [
-      "High in monounsaturated fatty acids",
-      "Milder taste, versatile in cooking",
-      "Natural preservative properties",
-      "Good source of vitamin A & E",
-    ],
-    weight: "500 ml",
+    benefits: ["Cold Pressed", "Chemical Free", "100% Natural", "Mild Flavor"],
+    weight: "1 Liter",
+    variants: [{ size: "1 Liter", price: 599, originalPrice: 799 }],
   },
   {
-    id: "sugarcane-juice",
-    name: "Fresh Sugarcane Juice",
-    price: 60,
-    imageUrl:
-      "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=800&q=80",
+    id: "burance-juice-500ml",
+    name: "Buransh Juice (500 ml)",
+    price: 249,
+    originalPrice: 332,
+    imageUrl: "/assets/images/burance-juice.png",
+    shortDescription:
+      "Freshly extracted natural Himalayan Buransh juice, preservative-free and chemical-free.",
     description:
-      "100% natural sugarcane juice. No added sugar, no preservatives — pure refreshment.",
+      "Freshly extracted natural Buransh (Rhododendron) juice with no preservatives or additives. Pure and healthy.",
     longDescription:
-      "Freshly pressed sugarcane juice, packed with natural minerals and enzymes. Contains calcium, potassium, magnesium, and iron that support liver health, immunity, and instant energy.",
+      "Our Buransh Juice is made from handpicked Himalayan Buransh (Rhododendron) flowers from the Valley of Flowers region. Naturally extracted with no preservatives, no artificial colors, and no additives — a refreshing drink that keeps the body cool in summer and supports digestive health.",
     category: "Beverages",
     benefits: [
-      "Instant natural energy boost",
-      "Rich in iron & electrolytes",
-      "Supports liver & kidney health",
-      "Natural digestive aid",
+      "No Preservatives",
+      "No Artificial Colors",
+      "Naturally Extracted",
+      "Fresh Himalayan Flowers",
     ],
-    weight: "250 ml",
+    weight: "250 ml / 500 ml",
     tag: "Fresh",
+    variants: [
+      { size: "250 ml", price: 139, originalPrice: 185 },
+      { size: "500 ml", price: 249, originalPrice: 332 },
+    ],
   },
 ];
 

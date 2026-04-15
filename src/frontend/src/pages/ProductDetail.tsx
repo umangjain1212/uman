@@ -1,6 +1,8 @@
 import { ProductCard } from "@/components/ProductCard";
+import { SEO } from "@/components/SEO";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { getProductById, products } from "@/data/products";
 import { useCartStore } from "@/store/cartStore";
@@ -12,10 +14,17 @@ import {
   Minus,
   Plus,
   ShoppingCart,
+  Tag,
+  X,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
+
+// Hidden coupon — works but not shown publicly
+const VALID_COUPONS: Record<string, number> = {
+  FARM10: 10,
+};
 
 export function ProductDetail() {
   const { id } = useParams({ from: "/product/$id" });
@@ -27,7 +36,17 @@ export function ProductDetail() {
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
+  // Variant selector — default to last (largest) variant
   const product = getProductById(id);
+  const defaultVariantIdx = product?.variants ? product.variants.length - 1 : 0;
+  const [selectedVariantIdx, setSelectedVariantIdx] =
+    useState(defaultVariantIdx);
+
+  // Coupon state
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [couponDiscount, setCouponDiscount] = useState(0);
 
   if (!product) {
     return (
@@ -50,7 +69,21 @@ export function ProductDetail() {
     );
   }
 
-  const inCart = items.find((i) => i.productId === product.id);
+  const activeVariant = product.variants
+    ? product.variants[selectedVariantIdx]
+    : null;
+  const basePrice = activeVariant ? activeVariant.price : product.price;
+  const baseOriginalPrice = activeVariant
+    ? activeVariant.originalPrice
+    : product.originalPrice;
+
+  const discountAmount = Math.round((basePrice * couponDiscount) / 100);
+  const finalPrice = basePrice - discountAmount;
+
+  const cartItemId = activeVariant
+    ? `${product.id}-${activeVariant.size.replace(/\s+/g, "")}`
+    : product.id;
+  const inCart = items.find((i) => i.productId === cartItemId);
 
   // Related: same category first, fallback to random excluding current
   const sameCategory = products.filter(
@@ -77,26 +110,57 @@ export function ProductDetail() {
     if (!Number.isNaN(parsed)) setQty(Math.min(99, Math.max(1, parsed)));
   }
 
-  function handleAddToCart() {
-    const p = product!;
-    if (inCart) {
-      updateQuantity(p.id, inCart.quantity + qty);
-    } else {
-      // addItem sets quantity to 1, then bump to chosen qty
-      addItem({
-        productId: p.id,
-        name: p.name,
-        price: p.price,
-        imageUrl: p.imageUrl,
+  function handleApplyCoupon() {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) {
+      setCouponError("Please enter a coupon code.");
+      return;
+    }
+    if (VALID_COUPONS[code] !== undefined) {
+      setAppliedCoupon(code);
+      setCouponDiscount(VALID_COUPONS[code]);
+      setCouponError("");
+      toast.success(`Coupon applied! ${VALID_COUPONS[code]}% discount`, {
+        description: `Save ₹${Math.round((basePrice * VALID_COUPONS[code]) / 100)} on this product`,
+        duration: 3000,
       });
-      if (qty > 1) updateQuantity(p.id, qty);
+    } else {
+      setCouponError("Invalid coupon code. Please try again.");
+      setAppliedCoupon(null);
+      setCouponDiscount(0);
+    }
+  }
+
+  function handleRemoveCoupon() {
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+    setCouponInput("");
+    setCouponError("");
+  }
+
+  function handleAddToCart() {
+    if (!product) return;
+    const itemName = activeVariant
+      ? `${product.name} – ${activeVariant.size}`
+      : product.name;
+
+    if (inCart) {
+      updateQuantity(cartItemId, inCart.quantity + qty);
+    } else {
+      addItem({
+        productId: cartItemId,
+        name: itemName,
+        price: finalPrice,
+        imageUrl: product.imageUrl,
+      });
+      if (qty > 1) updateQuantity(cartItemId, qty);
     }
 
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
 
-    toast.success(`${p.name} added to cart`, {
-      description: `${qty} × ₹${p.price} = ₹${p.price * qty}`,
+    toast.success(`${itemName} added to cart`, {
+      description: `${qty} × ₹${finalPrice} = ₹${finalPrice * qty}${couponDiscount > 0 ? ` (${couponDiscount}% off applied)` : ""}`,
       action: {
         label: "View Cart",
         onClick: () => navigate({ to: "/cart" }),
@@ -104,8 +168,30 @@ export function ProductDetail() {
     });
   }
 
+  // Reset coupon when variant changes
+  function handleVariantChange(idx: number) {
+    setSelectedVariantIdx(idx);
+    if (appliedCoupon) {
+      setAppliedCoupon(null);
+      setCouponDiscount(0);
+      setCouponInput("");
+    }
+  }
+
   return (
     <div className="py-8 min-h-screen">
+      {/* SEO */}
+      <SEO
+        title={`${product.name} — Farm72 | Pure Cold Pressed Oils`}
+        description={product.shortDescription ?? product.description}
+        type="product"
+        product={{
+          name: product.name,
+          price: finalPrice,
+          image: product.imageUrl,
+        }}
+      />
+
       <div className="container mx-auto px-4 sm:px-6">
         {/* Breadcrumb */}
         <nav
@@ -135,7 +221,7 @@ export function ProductDetail() {
 
         {/* Main Layout */}
         <div className="grid md:grid-cols-[3fr_2fr] gap-10 lg:gap-16 mb-16">
-          {/* Product Image — 60% width on desktop via grid proportion */}
+          {/* Product Image */}
           <motion.div
             initial={{ opacity: 0, x: -24 }}
             animate={{ opacity: 1, x: 0 }}
@@ -147,6 +233,7 @@ export function ProductDetail() {
                 src={product.imageUrl}
                 alt={product.name}
                 className="w-full h-full object-cover"
+                loading="lazy"
               />
             </div>
             {product.tag && (
@@ -175,12 +262,22 @@ export function ProductDetail() {
                 >
                   {product.category}
                 </Badge>
-                <Badge
-                  variant="secondary"
-                  className="bg-primary/10 text-primary border-0 font-medium"
-                >
-                  Cold Pressed
-                </Badge>
+                {product.category === "Oils" && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-primary/10 text-primary border-0 font-medium"
+                  >
+                    Cold Pressed
+                  </Badge>
+                )}
+                {product.category === "Beverages" && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-primary/10 text-primary border-0 font-medium"
+                  >
+                    Himalayan Natural
+                  </Badge>
+                )}
               </div>
               <h1 className="font-display text-3xl sm:text-4xl font-bold text-foreground leading-tight mb-2">
                 {product.name}
@@ -188,19 +285,60 @@ export function ProductDetail() {
               <p className="text-sm text-muted-foreground">{product.weight}</p>
             </div>
 
+            {/* Variant selector */}
+            {product.variants && (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-semibold text-foreground/80">
+                  Choose Size:
+                </p>
+                <div className="flex gap-3 flex-wrap">
+                  {product.variants.map((variant, idx) => (
+                    <button
+                      key={variant.size}
+                      type="button"
+                      onClick={() => handleVariantChange(idx)}
+                      className={`flex flex-col items-start px-4 py-3 rounded-xl border-2 text-left transition-colors duration-200 min-w-[110px] ${
+                        selectedVariantIdx === idx
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                      data-ocid={`size-variant-${variant.size.replace(/\s+/g, "")}`}
+                    >
+                      <span className="font-semibold text-sm text-foreground">
+                        {variant.size}
+                      </span>
+                      <span className="font-bold text-lg text-primary">
+                        ₹{variant.price}
+                      </span>
+                      <span className="text-xs text-muted-foreground line-through">
+                        ₹{variant.originalPrice}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Price */}
             <div className="flex items-baseline gap-3">
               <p
                 className="font-display text-4xl font-extrabold text-primary"
                 data-ocid="product-price"
               >
-                ₹{product.price}
+                ₹{finalPrice}
               </p>
-              <span className="text-sm text-muted-foreground line-through opacity-60">
-                ₹{Math.round(product.price * 1.25)}
+              {couponDiscount > 0 && (
+                <span className="font-display text-xl text-muted-foreground line-through opacity-60">
+                  ₹{basePrice}
+                </span>
+              )}
+              <span className="text-xs text-muted-foreground line-through opacity-60">
+                ₹{baseOriginalPrice}
               </span>
               <span className="text-xs font-semibold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
-                20% off
+                {couponDiscount > 0
+                  ? `${Math.round(((baseOriginalPrice - finalPrice) / baseOriginalPrice) * 100)}% off`
+                  : "25% off"}
               </span>
             </div>
 
@@ -229,6 +367,68 @@ export function ProductDetail() {
                   </li>
                 ))}
               </ul>
+            </div>
+
+            <Separator />
+
+            {/* Coupon Code */}
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="coupon-input"
+                className="text-sm font-medium text-foreground/80 flex items-center gap-1.5"
+              >
+                <Tag className="w-4 h-4 text-primary" />
+                Have a coupon code?
+              </label>
+              {appliedCoupon ? (
+                <div className="flex items-center gap-2 bg-accent/10 border border-accent/30 rounded-xl px-4 py-2.5">
+                  <Check className="w-4 h-4 text-accent flex-shrink-0" />
+                  <span className="text-sm font-semibold text-accent flex-1">
+                    {appliedCoupon} — {couponDiscount}% off applied!
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Remove coupon"
+                    data-ocid="coupon-remove"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    id="coupon-input"
+                    placeholder="Enter coupon code"
+                    value={couponInput}
+                    onChange={(e) => {
+                      setCouponInput(e.target.value.toUpperCase());
+                      if (couponError) setCouponError("");
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+                    className={`flex-1 ${couponError ? "border-destructive" : ""}`}
+                    data-ocid="coupon-input"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleApplyCoupon}
+                    className="border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                    data-ocid="coupon-apply"
+                  >
+                    Apply
+                  </Button>
+                </div>
+              )}
+              {couponError && (
+                <p
+                  className="text-destructive text-xs"
+                  data-ocid="coupon-error"
+                >
+                  {couponError}
+                </p>
+              )}
             </div>
 
             <Separator />
@@ -319,12 +519,15 @@ export function ProductDetail() {
 
             {/* Trust badges */}
             <div className="flex flex-wrap gap-2 pt-1">
-              {[
-                "100% Natural",
-                "No Chemicals",
-                "Lab Tested",
-                "Kacchi Ghani",
-              ].map((badge) => (
+              {(product.category === "Oils"
+                ? ["100% Natural", "No Chemicals", "Lab Tested", "Kacchi Ghani"]
+                : [
+                    "100% Natural",
+                    "No Chemicals",
+                    "Himalayan Origin",
+                    "Preservative Free",
+                  ]
+              ).map((badge) => (
                 <span key={badge} className="badge-organic text-xs">
                   {badge}
                 </span>

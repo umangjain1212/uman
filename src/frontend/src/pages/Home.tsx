@@ -1,4 +1,5 @@
 import { ProductCard } from "@/components/ProductCard";
+import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { products } from "@/data/products";
 import { Link } from "@tanstack/react-router";
@@ -14,31 +15,31 @@ import {
 import { motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+// hero1 = uploaded Farm72 bottles triptych
+// hero2 = uploaded four bottles lineup
+// hero3 = uploaded mustard field with bottle
+// hero4 = uploaded coconuts with palm leaves
+// hero5 = uploaded red flowers
 const heroSlides = [
   {
-    imageUrl:
-      "https://images.unsplash.com/photo-1625944525533-473f1a3d54e7?w=1600&q=85",
-    alt: "Coconut oil in a glass jar on wooden surface",
+    imageUrl: "/assets/images/hero1.png",
+    alt: "Farm72 cold pressed oil bottles",
   },
   {
-    imageUrl:
-      "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=1600&q=85",
-    alt: "Sesame seeds in a wooden bowl",
+    imageUrl: "/assets/images/hero2.png",
+    alt: "Farm72 product lineup — Mustard, Coconut, Sesame oils",
   },
   {
-    imageUrl:
-      "https://images.unsplash.com/photo-1625944230945-1b7dd3b949ab?w=1600&q=85",
-    alt: "Mustard field in full bloom",
+    imageUrl: "/assets/images/hero3.png",
+    alt: "Mustard field at sunrise with Farm72 bottle",
   },
   {
-    imageUrl:
-      "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=1600&q=85",
-    alt: "Healthy organic food and oils on a table",
+    imageUrl: "/assets/images/hero4.jpg",
+    alt: "Fresh coconuts with palm leaves",
   },
   {
-    imageUrl:
-      "https://images.unsplash.com/photo-1604928141064-207cea6f571f?w=1600&q=85",
-    alt: "Organic farm with fresh produce",
+    imageUrl: "/assets/images/hero5.jpg",
+    alt: "Farm72 natural organic ingredients",
   },
 ];
 
@@ -109,7 +110,19 @@ function HeroCarousel() {
           }}
           role="img"
           aria-label={slide.alt}
-        />
+        >
+          {/* LCP preload hint for first slide */}
+          {i === 0 && (
+            <img
+              src={slide.imageUrl}
+              alt=""
+              aria-hidden="true"
+              fetchPriority="high"
+              loading="eager"
+              className="absolute w-0 h-0 opacity-0 pointer-events-none"
+            />
+          )}
+        </div>
       ))}
 
       {/* Dark overlay */}
@@ -125,19 +138,19 @@ function HeroCarousel() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-foreground/15 backdrop-blur-sm border border-primary-foreground/30 text-primary-foreground text-sm font-medium mb-6">
             <Sprout className="w-4 h-4 text-accent" />
-            Farm72 · Pure Cold Pressed Oils
+            Farm72 · Pure Cold Pressed Oil &amp; Buransh Juice
           </div>
 
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-primary-foreground leading-tight mb-4">
-            Pure Cold Pressed Oils
+            Pure Cold Pressed Oil &amp; Buransh Juice
             <br />
             <span className="text-accent">for Healthy Living</span>
           </h1>
 
-          <p className="text-primary-foreground/85 text-lg mb-8 max-w-xl mx-auto leading-relaxed">
-            100%
-            Natural&nbsp;&nbsp;|&nbsp;&nbsp;Chemical-Free&nbsp;&nbsp;|&nbsp;&nbsp;Kacchi
-            Ghani Process
+          <p className="text-white text-lg mb-8 max-w-xl mx-auto leading-relaxed font-medium">
+            100% Natural&nbsp;&nbsp;|&nbsp;&nbsp;Chemical
+            Free&nbsp;&nbsp;|&nbsp;&nbsp;No Preservatives
+            Added&nbsp;&nbsp;|&nbsp;&nbsp;Purely Natural
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -205,6 +218,10 @@ function HeroCarousel() {
 export function Home() {
   return (
     <div>
+      <SEO
+        title="Farm72 — Pure Cold Pressed Oils &amp; Buransh Juice"
+        description="Shop 100% pure Kacchi Ghani cold-pressed oils and Himalayan Buransh Juice online. Natural, chemical-free, traditional extraction."
+      />
       {/* Hero Carousel */}
       <HeroCarousel />
 
@@ -218,14 +235,16 @@ export function Home() {
             className="text-center mb-10"
           >
             <span className="badge-organic mb-3 inline-flex">Our Products</span>
-            <h2 className="section-title">Pure Cold Pressed Oils</h2>
+            <h2 className="section-title">
+              Pure Cold Pressed Oils &amp; Buransh Juice
+            </h2>
             <p className="section-subtitle mt-2 max-w-lg mx-auto">
               Straight from nature to your kitchen — each oil pressed fresh to
               lock in maximum nutrition and natural flavour.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
             {products.map((product, i) => (
               <motion.div
                 key={product.id}
@@ -381,16 +400,16 @@ export function Home() {
           viewport={{ once: true }}
           className="container mx-auto px-4 sm:px-6 text-center"
         >
-          <h2 className="font-display text-3xl sm:text-4xl font-bold text-primary-foreground mb-4">
+          <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">
             Experience the Purity
           </h2>
-          <p className="text-primary-foreground/80 text-lg mb-8 max-w-md mx-auto">
+          <p className="text-white/90 text-lg mb-8 max-w-md mx-auto">
             Order today and taste the difference of genuine cold-pressed oils —
             fresh, natural, and full of life.
           </p>
           <Link to="/shop">
             <Button
-              className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-bold text-base px-8 py-3 shadow-elevated transition-smooth"
+              className="bg-white text-primary hover:bg-white/90 font-bold text-base px-8 py-3 shadow-elevated transition-smooth"
               data-ocid="cta-shop-now"
             >
               Shop Now

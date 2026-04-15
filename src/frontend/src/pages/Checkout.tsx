@@ -52,7 +52,7 @@ function buildWhatsAppUrl(
     "",
     "Please confirm and process my order. Thank you! 🙏",
   ].join("\n");
-  return `https://wa.me/919876543210?text=${encodeURIComponent(message)}`;
+  return `https://wa.me/917500010488?text=${encodeURIComponent(message)}`;
 }
 
 export function Checkout() {

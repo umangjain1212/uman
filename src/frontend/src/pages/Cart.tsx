@@ -1,33 +1,48 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { type CartItem, useCartStore } from "@/store/cartStore";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ArrowRight,
+  CheckCircle2,
   MessageCircle,
   Minus,
   Plus,
   ShoppingCart,
+  Tag,
   Truck,
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
 
-function buildWhatsAppMessage(items: CartItem[], total: number): string {
+// Hidden coupon definitions — NOT displayed anywhere on the UI
+const VALID_COUPONS: Record<string, number> = {
+  FARM10: 0.1,
+};
+
+function buildWhatsAppMessage(
+  items: CartItem[],
+  total: number,
+  couponCode?: string,
+): string {
   const itemLines = items.map(
     (i) => `• ${i.name} × ${i.quantity} = ₹${i.price * i.quantity}`,
   );
+  const couponLine = couponCode ? [`Coupon applied: ${couponCode}`] : [];
   const message = [
     "Hello Farm72! I'd like to place an order:",
     "",
     ...itemLines,
     "",
+    ...couponLine,
     `*Total: ₹${total}*`,
     "",
     "Please confirm my order. Thank you!",
   ].join("\n");
-  return `https://wa.me/919876543210?text=${encodeURIComponent(message)}`;
+  return `https://wa.me/917500010488?text=${encodeURIComponent(message)}`;
 }
 
 export function Cart() {
@@ -35,6 +50,31 @@ export function Cart() {
   const removeItem = useCartStore((s) => s.removeItem);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const totalPrice = useCartStore((s) => s.totalPrice());
+
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState("");
+
+  const discountRate = appliedCoupon ? (VALID_COUPONS[appliedCoupon] ?? 0) : 0;
+  const discountAmount = Math.round(totalPrice * discountRate);
+  const finalTotal = totalPrice - discountAmount;
+
+  function handleApplyCoupon() {
+    const code = couponInput.trim().toUpperCase();
+    if (VALID_COUPONS[code] !== undefined) {
+      setAppliedCoupon(code);
+      setCouponError("");
+      setCouponInput("");
+    } else {
+      setCouponError("Invalid coupon code. Please try again.");
+    }
+  }
+
+  function handleRemoveCoupon() {
+    setAppliedCoupon(null);
+    setCouponError("");
+    setCouponInput("");
+  }
 
   if (items.length === 0) {
     return (
@@ -232,12 +272,117 @@ export function Cart() {
                 </p>
               </div>
 
+              {/* Coupon Code Section */}
+              <Separator className="mb-4" />
+
+              <div className="mb-4" data-ocid="cart-coupon-section">
+                <p className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-primary" />
+                  Coupon Code
+                </p>
+
+                {appliedCoupon ? (
+                  /* Applied coupon badge */
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center justify-between bg-primary/10 border border-primary/30 rounded-lg px-3 py-2"
+                    data-ocid="cart-coupon-applied"
+                  >
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                      <div>
+                        <p className="text-xs font-bold text-primary">
+                          {appliedCoupon}
+                        </p>
+                        <p className="text-xs text-primary/80">
+                          Coupon applied! 10% discount added
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveCoupon}
+                      aria-label="Remove coupon"
+                      className="p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-smooth"
+                      data-ocid="cart-coupon-remove"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </motion.div>
+                ) : (
+                  /* Coupon input */
+                  <div className="flex gap-2">
+                    <Input
+                      value={couponInput}
+                      onChange={(e) => {
+                        setCouponInput(e.target.value.toUpperCase());
+                        setCouponError("");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleApplyCoupon();
+                      }}
+                      placeholder="Enter coupon code"
+                      className="text-sm h-9 uppercase placeholder:normal-case"
+                      data-ocid="cart-coupon-input"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleApplyCoupon}
+                      disabled={!couponInput.trim()}
+                      className="h-9 px-3 text-xs font-semibold border-primary/40 text-primary hover:bg-primary/10 flex-shrink-0"
+                      data-ocid="cart-coupon-apply"
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                )}
+
+                {/* Error message */}
+                <AnimatePresence>
+                  {couponError && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="text-xs text-destructive mt-1.5"
+                      data-ocid="cart-coupon-error"
+                    >
+                      {couponError}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Discount line item (visible only when coupon applied) */}
+              <AnimatePresence>
+                {appliedCoupon && discountAmount > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex justify-between text-sm mb-3">
+                      <span className="text-primary font-medium">
+                        Discount ({appliedCoupon})
+                      </span>
+                      <span className="font-semibold text-primary">
+                        -₹{discountAmount}
+                      </span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <Separator className="mb-4" />
 
               {/* Total */}
               <div className="flex justify-between font-display font-bold text-xl mb-6">
                 <span>Total</span>
-                <span className="text-primary">₹{totalPrice}</span>
+                <span className="text-primary">₹{finalTotal}</span>
               </div>
 
               {/* Action buttons */}
@@ -253,7 +398,11 @@ export function Cart() {
                 </Link>
 
                 <a
-                  href={buildWhatsAppMessage(items, totalPrice)}
+                  href={buildWhatsAppMessage(
+                    items,
+                    finalTotal,
+                    appliedCoupon ?? undefined,
+                  )}
                   target="_blank"
                   rel="noopener noreferrer"
                 >

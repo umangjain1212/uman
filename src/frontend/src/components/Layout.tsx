@@ -1,3 +1,4 @@
+import { WhatsAppPopup } from "@/components/WhatsAppPopup";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/cartStore";
 import { Link, useRouterState } from "@tanstack/react-router";
@@ -7,8 +8,10 @@ import { useEffect, useState } from "react";
 const navLinks = [
   { to: "/", label: "Home" },
   { to: "/shop", label: "Shop" },
+  { to: "/buransh", label: "Buransh Juice" },
   { to: "/about", label: "About" },
   { to: "/contact", label: "Contact" },
+  { to: "/faq", label: "FAQ" },
 ];
 
 function Navbar() {
@@ -33,23 +36,25 @@ function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-50 bg-card transition-smooth ${
+      className={`sticky top-0 z-50 transition-smooth ${
         scrolled ? "shadow-card border-b border-border" : "shadow-subtle"
       }`}
+      style={{ backgroundColor: "#1a3a1a" }}
     >
       <nav className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
+        {/* Logo + tagline */}
         <Link
           to="/"
           className="flex items-center group"
           data-ocid="nav-logo"
           aria-label="Farm72 Home"
         >
-          <img
-            src="/assets/images/logo.png"
-            alt="Farm72"
-            className="h-12 w-auto object-contain transition-smooth group-hover:opacity-90 drop-shadow-sm"
-          />
+          <span
+            className="font-serif text-2xl font-semibold tracking-widest text-white group-hover:text-white/90 transition-smooth select-none"
+            style={{ letterSpacing: "0.18em" }}
+          >
+            Farm&nbsp;72
+          </span>
         </Link>
 
         {/* Desktop Nav */}
@@ -58,8 +63,10 @@ function Navbar() {
             <Link
               key={link.to}
               to={link.to}
-              className={`nav-link px-4 py-2 rounded-lg hover:bg-muted ${
-                currentPath === link.to ? "nav-link-active bg-primary/8" : ""
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-smooth ${
+                currentPath === link.to
+                  ? "text-white bg-white/15"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
               }`}
               data-ocid={`nav-${link.label.toLowerCase()}`}
             >
@@ -74,7 +81,7 @@ function Navbar() {
             <Button
               variant="ghost"
               size="icon"
-              className="relative hover:bg-primary/10 hover:text-primary transition-smooth"
+              className="relative text-white/80 hover:text-white hover:bg-white/15 transition-smooth"
             >
               <ShoppingCart className="w-5 h-5" />
               {totalItems > 0 && (
@@ -91,7 +98,7 @@ function Navbar() {
           {/* Mobile hamburger */}
           <button
             type="button"
-            className="md:hidden p-2 rounded-lg hover:bg-muted transition-smooth"
+            className="md:hidden p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/15 transition-smooth"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             data-ocid="nav-mobile-toggle"
@@ -107,7 +114,13 @@ function Navbar() {
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-border bg-card animate-slide-up">
+        <div
+          className="md:hidden border-t animate-slide-up"
+          style={{
+            borderColor: "rgba(255,255,255,0.15)",
+            backgroundColor: "#1a3a1a",
+          }}
+        >
           <div className="container mx-auto px-4 py-3 flex flex-col gap-1">
             {navLinks.map((link) => (
               <Link
@@ -115,8 +128,8 @@ function Navbar() {
                 to={link.to}
                 className={`px-4 py-3 rounded-lg text-sm font-medium transition-smooth ${
                   currentPath === link.to
-                    ? "bg-primary/10 text-primary font-semibold"
-                    : "hover:bg-muted text-foreground"
+                    ? "bg-white/15 text-white font-semibold"
+                    : "text-white/80 hover:bg-white/10 hover:text-white"
                 }`}
                 data-ocid={`mobile-nav-${link.label.toLowerCase()}`}
               >
@@ -132,8 +145,6 @@ function Navbar() {
 
 function Footer() {
   const year = new Date().getFullYear();
-  const hostname =
-    typeof window !== "undefined" ? window.location.hostname : "farm72";
 
   return (
     <footer className="bg-primary text-primary-foreground mt-auto">
@@ -142,11 +153,12 @@ function Footer() {
           {/* Brand */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <img
-                src="/assets/images/logo.png"
-                alt="Farm72"
-                className="h-14 w-auto object-contain brightness-0 invert opacity-90"
-              />
+              <span
+                className="font-serif text-2xl font-semibold tracking-widest text-primary-foreground opacity-90 select-none"
+                style={{ letterSpacing: "0.18em" }}
+              >
+                Farm&nbsp;72
+              </span>
             </div>
             <p className="text-sm text-primary-foreground/80 leading-relaxed max-w-xs">
               Bringing the goodness of nature to your kitchen using traditional
@@ -166,11 +178,11 @@ function Footer() {
                 info@farm72.in
               </a>
               <a
-                href="tel:+919876543210"
+                href="tel:+917500010488"
                 className="flex items-center gap-2.5 hover:text-primary-foreground transition-smooth"
               >
                 <Phone className="w-4 h-4 flex-shrink-0" />
-                +91-9876543210
+                +91 7500010488
               </a>
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -200,40 +212,44 @@ function Footer() {
               >
                 Cart
               </Link>
+              <Link
+                to="/refund-policy"
+                className="hover:text-primary-foreground transition-smooth w-fit"
+              >
+                Refund Policy
+              </Link>
+              <Link
+                to="/terms"
+                className="hover:text-primary-foreground transition-smooth w-fit"
+              >
+                Terms &amp; Conditions
+              </Link>
+              <Link
+                to="/faq"
+                className="hover:text-primary-foreground transition-smooth w-fit"
+              >
+                FAQ
+              </Link>
             </div>
           </div>
         </div>
 
         {/* Bottom bar */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-primary-foreground/60">
-          <p>
-            © {year} Farm72. All rights reserved. Built with love using{" "}
-            <a
-              href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(
-                hostname,
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline underline-offset-2 hover:text-primary-foreground transition-smooth"
-            >
-              caffeine.ai
-            </a>
-          </p>
+          <p>© {year} Farm72. All rights reserved.</p>
           <div className="flex items-center gap-4">
-            <a
-              href="/privacy"
-              onClick={(e) => e.preventDefault()}
+            <Link
+              to="/refund-policy"
               className="hover:text-primary-foreground transition-smooth"
             >
-              Privacy Policy
-            </a>
-            <a
-              href="/terms"
-              onClick={(e) => e.preventDefault()}
+              Refund Policy
+            </Link>
+            <Link
+              to="/terms"
               className="hover:text-primary-foreground transition-smooth"
             >
-              Terms of Service
-            </a>
+              Terms &amp; Conditions
+            </Link>
           </div>
         </div>
       </div>
@@ -251,6 +267,7 @@ export function Layout({ children }: LayoutProps) {
       <Navbar />
       <main className="flex-1 bg-background">{children}</main>
       <Footer />
+      <WhatsAppPopup />
     </div>
   );
 }

@@ -30,6 +30,16 @@ const About = lazy(() =>
 const Contact = lazy(() =>
   import("@/pages/Contact").then((m) => ({ default: m.Contact })),
 );
+const RefundPolicy = lazy(() =>
+  import("@/pages/RefundPolicy").then((m) => ({ default: m.RefundPolicy })),
+);
+const Terms = lazy(() =>
+  import("@/pages/Terms").then((m) => ({ default: m.Terms })),
+);
+const FAQ = lazy(() => import("@/pages/FAQ").then((m) => ({ default: m.FAQ })));
+const BuranshJuice = lazy(() =>
+  import("@/pages/BuranshJuice").then((m) => ({ default: m.BuranshJuice })),
+);
 
 function PageLoader() {
   return (
@@ -101,6 +111,30 @@ const contactRoute = createRoute({
   component: Contact,
 });
 
+const refundPolicyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/refund-policy",
+  component: RefundPolicy,
+});
+
+const termsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/terms",
+  component: Terms,
+});
+
+const faqRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/faq",
+  component: FAQ,
+});
+
+const buranshRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/buransh",
+  component: BuranshJuice,
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   shopRoute,
@@ -109,6 +143,10 @@ const routeTree = rootRoute.addChildren([
   checkoutRoute,
   aboutRoute,
   contactRoute,
+  refundPolicyRoute,
+  termsRoute,
+  faqRoute,
+  buranshRoute,
 ]);
 
 const router = createRouter({ routeTree });

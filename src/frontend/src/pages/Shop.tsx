@@ -1,4 +1,5 @@
 import { ProductCard } from "@/components/ProductCard";
+import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { products } from "@/data/products";
@@ -33,6 +34,10 @@ export function Shop() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Shop — Farm72 | Cold Pressed Oils &amp; Buransh Juice"
+        description="Browse Farm72 pure cold-pressed oils: Coconut, Sesame, Mustard, and Himalayan Buransh Juice. 25% off, natural and chemical-free."
+      />
       {/* Page Header */}
       <div className="bg-card border-b border-border">
         <div className="container mx-auto px-4 sm:px-6 py-8">
@@ -58,9 +63,6 @@ export function Shop() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <span className="badge-organic mb-3 inline-flex">
-              Kacchi Ghani Collection
-            </span>
             <h1 className="font-display text-4xl font-bold text-foreground mb-2 leading-tight">
               Our Products
             </h1>
