@@ -1,5 +1,6 @@
 // Version: 1.0.0
-type ContactMessage__84138439 = {email : Text; message : Text; name : Text};
+type ContactMessage__84138439 =
+  {email : Text; message : Text; name : Text; timestamp : Int};
 type Coupon__243002030 =
   {
     code : Text;
@@ -22,6 +23,7 @@ type FaqItem__599334758 =
 type HeroSlide__72308354 =
   {
     displayOrder : Nat;
+    highlight : Text;
     id : Text;
     imageUrl : Text;
     isVisible : Bool;
@@ -102,9 +104,7 @@ actor {
       var adminAssigned : Bool;
       userRoles : Map__605269027<Principal, UserRole__1054455867>
     };
-  stable adminAuth : {var passwordHash : Text};
-  stable adminSessions :
-    {var root : Node__46230540<Text, Int>; var size : Nat__490723111};
+  stable adminPrincipalStore : {var adminPrincipalText : ?Text};
   stable contactMessages :
     {
       var blockIndex : Nat__490723111;
@@ -127,6 +127,7 @@ actor {
       var size : Nat__490723111
     };
   stable nextOrderIdRef : {var value : Nat};
+  stable objectStorageState : {var authorizedPrincipals : [Principal]};
   stable orders :
     {
       var root : Node__46230540<Text, Order__141779993>;

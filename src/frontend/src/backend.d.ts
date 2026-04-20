@@ -48,12 +48,14 @@ export interface HeroSlideInput {
     displayOrder: bigint;
     imageUrl: string;
     isVisible: boolean;
+    highlight: string;
     subtitle: string;
 }
 export interface ContactMessage {
     name: string;
     email: string;
     message: string;
+    timestamp: bigint;
 }
 export interface TransformationInput {
     context: Uint8Array;
@@ -126,6 +128,7 @@ export interface HeroSlide {
     displayOrder: bigint;
     imageUrl: string;
     isVisible: boolean;
+    highlight: string;
     subtitle: string;
 }
 export interface ProductVariant {
@@ -227,21 +230,37 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
-    addCoupon(input: CouponInput): Promise<Coupon>;
-    addFAQ(input: FaqItemInput): Promise<FaqItem>;
-    addHeroSlide(input: HeroSlideInput): Promise<HeroSlide>;
-    addProduct(input: ProductInput): Promise<Product>;
-    adminLogin(username: string, password: string): Promise<{
+    addCoupon(input: CouponInput): Promise<{
         __kind__: "ok";
-        ok: string;
+        ok: Coupon;
     } | {
         __kind__: "err";
         err: string;
     }>;
-    adminLogout(token: string): Promise<void>;
+    addFAQ(input: FaqItemInput): Promise<{
+        __kind__: "ok";
+        ok: FaqItem;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    addHeroSlide(input: HeroSlideInput): Promise<{
+        __kind__: "ok";
+        ok: HeroSlide;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    addProduct(input: ProductInput): Promise<{
+        __kind__: "ok";
+        ok: Product;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     applyCoupon(code: string): Promise<CouponValidation>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    changeAdminPassword(token: string, currentPassword: string, newPassword: string): Promise<{
+    checkIsAdmin(): Promise<{
         __kind__: "ok";
         ok: null;
     } | {
@@ -249,47 +268,259 @@ export interface backendInterface {
         err: string;
     }>;
     createCheckoutSession(items: Array<ShoppingItem>, successUrl: string, cancelUrl: string): Promise<string>;
-    createCoupon(input: CouponInput): Promise<Coupon>;
-    deleteCoupon(code: string): Promise<boolean>;
-    deleteFAQ(id: string): Promise<boolean>;
-    deleteFaqItem(id: string): Promise<boolean>;
-    deleteHeroSlide(id: string): Promise<boolean>;
-    deleteProduct(id: string): Promise<boolean>;
-    getAdminCoupons(): Promise<Array<Coupon>>;
-    getAdminOrders(): Promise<Array<Order>>;
-    getAdminProducts(): Promise<Array<Product>>;
-    getAnalyticsSummary(): Promise<AnalyticsSummary>;
+    createCoupon(input: CouponInput): Promise<{
+        __kind__: "ok";
+        ok: Coupon;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    deleteCoupon(code: string): Promise<{
+        __kind__: "ok";
+        ok: boolean;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    deleteFAQ(id: string): Promise<{
+        __kind__: "ok";
+        ok: boolean;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    deleteFaqItem(id: string): Promise<{
+        __kind__: "ok";
+        ok: boolean;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    deleteHeroSlide(id: string): Promise<{
+        __kind__: "ok";
+        ok: boolean;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    deleteProduct(id: string): Promise<{
+        __kind__: "ok";
+        ok: boolean;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    getAdminCoupons(): Promise<{
+        __kind__: "ok";
+        ok: Array<Coupon>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    getAdminOrders(): Promise<{
+        __kind__: "ok";
+        ok: Array<Order>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    getAdminPrincipal(): Promise<{
+        __kind__: "ok";
+        ok: string | null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    getAdminProducts(): Promise<{
+        __kind__: "ok";
+        ok: Array<Product>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    getAnalyticsSummary(): Promise<{
+        __kind__: "ok";
+        ok: AnalyticsSummary;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     getCallerUserRole(): Promise<UserRole>;
-    getCoupons(): Promise<Array<Coupon>>;
-    getDashboardStats(): Promise<AnalyticsSummary>;
+    getContactMessages(): Promise<{
+        __kind__: "ok";
+        ok: Array<ContactMessage>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    getCoupons(): Promise<{
+        __kind__: "ok";
+        ok: Array<Coupon>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    getDashboardStats(): Promise<{
+        __kind__: "ok";
+        ok: AnalyticsSummary;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     getFAQs(): Promise<Array<FaqItem>>;
     getFaqItems(): Promise<Array<FaqItem>>;
     getHeroSlides(): Promise<Array<HeroSlide>>;
-    getOrder(id: string): Promise<Order | null>;
-    getOrders(): Promise<Array<Order>>;
+    getImageUploadUrl(fileName: string, _contentType: string): Promise<{
+        __kind__: "ok";
+        ok: {
+            publicUrl: string;
+            uploadUrl: string;
+        };
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    getOrder(id: string): Promise<{
+        __kind__: "ok";
+        ok: Order | null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    getOrders(): Promise<{
+        __kind__: "ok";
+        ok: Array<Order>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     getProduct(id: string): Promise<Product | null>;
     getProducts(): Promise<Array<Product>>;
-    getRecentOrders(limit: bigint): Promise<Array<Order>>;
+    getRecentOrders(limit: bigint): Promise<{
+        __kind__: "ok";
+        ok: Array<Order>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     getSiteSettings(): Promise<SiteSettings>;
     getStripeSessionStatus(sessionId: string): Promise<StripeSessionStatus>;
-    getTopProducts(limit: bigint): Promise<Array<TopProduct>>;
+    getTopProducts(limit: bigint): Promise<{
+        __kind__: "ok";
+        ok: Array<TopProduct>;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    hasAdmin(): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     isStripeConfigured(): Promise<boolean>;
+    setAdminPrincipal(): Promise<{
+        __kind__: "ok";
+        ok: string;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    setAdminPrincipalExplicit(newAdmin: Principal): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     setStripeConfiguration(config: StripeConfiguration): Promise<void>;
-    storeOrder(input: OrderInput): Promise<Order>;
-    submitContact(msg: ContactMessage): Promise<boolean>;
-    toggleCoupon(code: string): Promise<Coupon | null>;
-    toggleProductVisibility(id: string): Promise<Product | null>;
+    storeOrder(input: OrderInput): Promise<{
+        __kind__: "ok";
+        ok: Order;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    submitContact(name: string, email: string, message: string): Promise<{
+        __kind__: "ok";
+        ok: ContactMessage;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    toggleCoupon(code: string): Promise<{
+        __kind__: "ok";
+        ok: Coupon;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    toggleProductVisibility(id: string): Promise<{
+        __kind__: "ok";
+        ok: Product;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
-    updateCoupon(code: string, input: CouponInput): Promise<Coupon | null>;
-    updateFAQ(id: string, input: FaqItemInput): Promise<FaqItem | null>;
-    updateHeroSlide(id: string, input: HeroSlideInput): Promise<HeroSlide | null>;
-    updateOrderStatus(id: string, status: OrderStatus): Promise<Order | null>;
-    updateProduct(id: string, input: ProductInput): Promise<Product | null>;
-    updateSiteSettings(input: SiteSettings): Promise<SiteSettings>;
-    updateSiteSettingsPartial(input: SiteSettingsInput): Promise<SiteSettings>;
-    upsertFaqItem(input: FaqItemInput): Promise<FaqItem>;
-    upsertHeroSlide(input: HeroSlideInput): Promise<HeroSlide>;
-    validateAdminSession(token: string): Promise<boolean>;
+    updateCoupon(code: string, input: CouponInput): Promise<{
+        __kind__: "ok";
+        ok: Coupon;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    updateFAQ(id: string, input: FaqItemInput): Promise<{
+        __kind__: "ok";
+        ok: FaqItem;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    updateHeroSlide(id: string, input: HeroSlideInput): Promise<{
+        __kind__: "ok";
+        ok: HeroSlide;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    updateOrderStatus(id: string, status: OrderStatus): Promise<{
+        __kind__: "ok";
+        ok: Order;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    updateProduct(id: string, input: ProductInput): Promise<{
+        __kind__: "ok";
+        ok: Product;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    updateSiteSettings(input: SiteSettings): Promise<{
+        __kind__: "ok";
+        ok: SiteSettings;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    updateSiteSettingsPartial(input: SiteSettingsInput): Promise<{
+        __kind__: "ok";
+        ok: SiteSettings;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    upsertFaqItem(input: FaqItemInput): Promise<{
+        __kind__: "ok";
+        ok: FaqItem;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
+    upsertHeroSlide(input: HeroSlideInput): Promise<{
+        __kind__: "ok";
+        ok: HeroSlide;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     validateCoupon(code: string): Promise<CouponValidation>;
 }

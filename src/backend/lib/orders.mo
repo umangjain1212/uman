@@ -1,5 +1,6 @@
 import Map "mo:core/Map";
 import Time "mo:core/Time";
+import Debug "mo:core/Debug";
 import OrderTypes "../types/orders";
 
 module {
@@ -7,7 +8,24 @@ module {
     orders : Map.Map<Text, OrderTypes.Order>,
     nextId : { var value : Nat },
     input : OrderTypes.OrderInput,
-  ) : OrderTypes.Order {
+  ) : { #ok : OrderTypes.Order; #err : Text } {
+    // Input validation
+    if (input.customerName.size() == 0) {
+      return #err("Customer name is required");
+    };
+    if (input.phone.size() == 0) {
+      return #err("Phone number is required");
+    };
+    if (input.address.size() == 0) {
+      return #err("Delivery address is required");
+    };
+    if (input.items.size() == 0) {
+      return #err("Order must contain at least one item");
+    };
+    if (input.totalAmount == 0) {
+      return #err("Order total must be greater than zero");
+    };
+
     let id = "ORD-" # nextId.value.toText();
     nextId.value += 1;
     let order : OrderTypes.Order = {
@@ -23,7 +41,8 @@ module {
       createdAt = Time.now();
     };
     orders.add(id, order);
-    order;
+    Debug.print("[Farm72] Order created: " # id # " total=" # order.totalAmount.toText());
+    #ok(order);
   };
 
   public func getOrders(orders : Map.Map<Text, OrderTypes.Order>) : [OrderTypes.Order] {

@@ -1,12 +1,18 @@
 import Map "mo:core/Map";
 import Time "mo:core/Time";
+import Debug "mo:core/Debug";
 import CouponTypes "../types/coupons";
 
 module {
   public func createCoupon(
     coupons : Map.Map<Text, CouponTypes.Coupon>,
     input : CouponTypes.CouponInput,
-  ) : CouponTypes.Coupon {
+  ) : { #ok : CouponTypes.Coupon; #err : Text } {
+    if (input.code.size() == 0) return #err("Coupon code is required");
+    if (input.discountPercent == 0 or input.discountPercent > 100) {
+      return #err("Discount percent must be between 1 and 100");
+    };
+    if (coupons.get(input.code) != null) return #err("Coupon code already exists");
     let coupon : CouponTypes.Coupon = {
       code = input.code;
       discountPercent = input.discountPercent;
@@ -16,7 +22,8 @@ module {
       isActive = input.isActive;
     };
     coupons.add(input.code, coupon);
-    coupon;
+    Debug.print("[Farm72] Coupon created: " # input.code);
+    #ok(coupon);
   };
 
   public func getCoupons(coupons : Map.Map<Text, CouponTypes.Coupon>) : [CouponTypes.Coupon] {
@@ -44,6 +51,7 @@ module {
           isActive = input.isActive;
         };
         coupons.add(code, updated);
+        Debug.print("[Farm72] Coupon updated: " # code);
         ?updated;
       };
     };
@@ -54,6 +62,7 @@ module {
       case null false;
       case (?_) {
         coupons.remove(code);
+        Debug.print("[Farm72] Coupon deleted: " # code);
         true;
       };
     };

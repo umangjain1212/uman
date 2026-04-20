@@ -9,6 +9,19 @@ type http_header =
    name: text;
    value: text;
  };
+type _ImmutableObjectStorageRefillResult = 
+ record {
+   success: opt bool;
+   topped_up_amount: opt nat;
+ };
+type _ImmutableObjectStorageRefillInformation = record {
+                                                  proposed_top_up_amount:
+                                                   opt nat;};
+type _ImmutableObjectStorageCreateCertificateResult = 
+ record {
+   blob_hash: text;
+   method: text;
+ };
 type UserRole = 
  variant {
    admin;
@@ -162,6 +175,7 @@ type Order =
 type HeroSlideInput = 
  record {
    displayOrder: nat;
+   highlight: text;
    id: text;
    imageUrl: text;
    isVisible: bool;
@@ -171,6 +185,7 @@ type HeroSlideInput =
 type HeroSlide = 
  record {
    displayOrder: nat;
+   highlight: text;
    id: text;
    imageUrl: text;
    isVisible: bool;
@@ -223,6 +238,7 @@ type ContactMessage =
    email: text;
    message: text;
    name: text;
+   timestamp: int;
  };
 type AnalyticsSummary = 
  record {
@@ -232,67 +248,203 @@ type AnalyticsSummary =
    totalRevenue: nat;
  };
 service : {
+  _immutableObjectStorageBlobsAreLive: (hashes: vec blob) -> (vec bool) query;
+  _immutableObjectStorageBlobsToDelete: () -> (vec blob) query;
+  _immutableObjectStorageConfirmBlobDeletion: (blobs: vec blob) -> ();
+  _immutableObjectStorageCreateCertificate: (blobHash: text) ->
+   (_ImmutableObjectStorageCreateCertificateResult);
+  _immutableObjectStorageRefillCashier: (refillInformation:
+   opt _ImmutableObjectStorageRefillInformation) ->
+   (_ImmutableObjectStorageRefillResult);
+  _immutableObjectStorageUpdateGatewayPrincipals: () -> ();
   _initializeAccessControl: () -> ();
-  addCoupon: (input: CouponInput) -> (Coupon);
-  addFAQ: (input: FaqItemInput) -> (FaqItem);
-  addHeroSlide: (input: HeroSlideInput) -> (HeroSlide);
-  addProduct: (input: ProductInput) -> (Product);
-  adminLogin: (username: text, password: text) ->
+  addCoupon: (input: CouponInput) -> (variant {
+                                        err: text;
+                                        ok: Coupon;
+                                      });
+  addFAQ: (input: FaqItemInput) -> (variant {
+                                      err: text;
+                                      ok: FaqItem;
+                                    });
+  addHeroSlide: (input: HeroSlideInput) ->
    (variant {
       err: text;
-      ok: text;
+      ok: HeroSlide;
     });
-  adminLogout: (token: text) -> ();
+  addProduct: (input: ProductInput) -> (variant {
+                                          err: text;
+                                          ok: Product;
+                                        });
   applyCoupon: (code: text) -> (CouponValidation);
   assignCallerUserRole: (user: principal, role: UserRole) -> ();
-  changeAdminPassword: (token: text, currentPassword: text, newPassword:
-   text) -> (variant {
-               err: text;
-               ok;
-             });
+  checkIsAdmin: () -> (variant {
+                         err: text;
+                         ok;
+                       });
   createCheckoutSession: (items: vec ShoppingItem, successUrl: text,
    cancelUrl: text) -> (text);
-  createCoupon: (input: CouponInput) -> (Coupon);
-  deleteCoupon: (code: text) -> (bool);
-  deleteFAQ: (id: text) -> (bool);
-  deleteFaqItem: (id: text) -> (bool);
-  deleteHeroSlide: (id: text) -> (bool);
-  deleteProduct: (id: text) -> (bool);
-  getAdminCoupons: () -> (vec Coupon);
-  getAdminOrders: () -> (vec Order);
-  getAdminProducts: () -> (vec Product);
-  getAnalyticsSummary: () -> (AnalyticsSummary);
+  createCoupon: (input: CouponInput) -> (variant {
+                                           err: text;
+                                           ok: Coupon;
+                                         });
+  deleteCoupon: (code: text) -> (variant {
+                                   err: text;
+                                   ok: bool;
+                                 });
+  deleteFAQ: (id: text) -> (variant {
+                              err: text;
+                              ok: bool;
+                            });
+  deleteFaqItem: (id: text) -> (variant {
+                                  err: text;
+                                  ok: bool;
+                                });
+  deleteHeroSlide: (id: text) -> (variant {
+                                    err: text;
+                                    ok: bool;
+                                  });
+  deleteProduct: (id: text) -> (variant {
+                                  err: text;
+                                  ok: bool;
+                                });
+  getAdminCoupons: () -> (variant {
+                            err: text;
+                            ok: vec Coupon;
+                          });
+  getAdminOrders: () -> (variant {
+                           err: text;
+                           ok: vec Order;
+                         });
+  getAdminPrincipal: () -> (variant {
+                              err: text;
+                              ok: opt text;
+                            });
+  getAdminProducts: () -> (variant {
+                             err: text;
+                             ok: vec Product;
+                           });
+  getAnalyticsSummary: () -> (variant {
+                                err: text;
+                                ok: AnalyticsSummary;
+                              });
   getCallerUserRole: () -> (UserRole) query;
-  getCoupons: () -> (vec Coupon);
-  getDashboardStats: () -> (AnalyticsSummary);
+  getContactMessages: () -> (variant {
+                               err: text;
+                               ok: vec ContactMessage;
+                             });
+  getCoupons: () -> (variant {
+                       err: text;
+                       ok: vec Coupon;
+                     });
+  getDashboardStats: () -> (variant {
+                              err: text;
+                              ok: AnalyticsSummary;
+                            });
   getFAQs: () -> (vec FaqItem) query;
   getFaqItems: () -> (vec FaqItem) query;
   getHeroSlides: () -> (vec HeroSlide) query;
-  getOrder: (id: text) -> (opt Order);
-  getOrders: () -> (vec Order);
+  getImageUploadUrl: (fileName: text, _contentType: text) ->
+   (variant {
+      err: text;
+      ok: record {
+            publicUrl: text;
+            uploadUrl: text;
+          };
+    });
+  getOrder: (id: text) -> (variant {
+                             err: text;
+                             ok: opt Order;
+                           });
+  getOrders: () -> (variant {
+                      err: text;
+                      ok: vec Order;
+                    });
   getProduct: (id: text) -> (opt Product) query;
   getProducts: () -> (vec Product) query;
-  getRecentOrders: (limit: nat) -> (vec Order);
+  getRecentOrders: (limit: nat) -> (variant {
+                                      err: text;
+                                      ok: vec Order;
+                                    });
   getSiteSettings: () -> (SiteSettings) query;
   getStripeSessionStatus: (sessionId: text) -> (StripeSessionStatus);
-  getTopProducts: (limit: nat) -> (vec TopProduct);
+  getTopProducts: (limit: nat) -> (variant {
+                                     err: text;
+                                     ok: vec TopProduct;
+                                   });
+  hasAdmin: () -> (bool) query;
   isCallerAdmin: () -> (bool) query;
   isStripeConfigured: () -> (bool) query;
+  setAdminPrincipal: () -> (variant {
+                              err: text;
+                              ok: text;
+                            });
+  setAdminPrincipalExplicit: (newAdmin: principal) ->
+   (variant {
+      err: text;
+      ok;
+    });
   setStripeConfiguration: (config: StripeConfiguration) -> ();
-  storeOrder: (input: OrderInput) -> (Order);
-  submitContact: (msg: ContactMessage) -> (bool);
-  toggleCoupon: (code: text) -> (opt Coupon);
-  toggleProductVisibility: (id: text) -> (opt Product);
+  storeOrder: (input: OrderInput) -> (variant {
+                                        err: text;
+                                        ok: Order;
+                                      });
+  submitContact: (name: text, email: text, message: text) ->
+   (variant {
+      err: text;
+      ok: ContactMessage;
+    });
+  toggleCoupon: (code: text) -> (variant {
+                                   err: text;
+                                   ok: Coupon;
+                                 });
+  toggleProductVisibility: (id: text) -> (variant {
+                                            err: text;
+                                            ok: Product;
+                                          });
   transform: (input: TransformationInput) -> (TransformationOutput) query;
-  updateCoupon: (code: text, input: CouponInput) -> (opt Coupon);
-  updateFAQ: (id: text, input: FaqItemInput) -> (opt FaqItem);
-  updateHeroSlide: (id: text, input: HeroSlideInput) -> (opt HeroSlide);
-  updateOrderStatus: (id: text, status: OrderStatus) -> (opt Order);
-  updateProduct: (id: text, input: ProductInput) -> (opt Product);
-  updateSiteSettings: (input: SiteSettings) -> (SiteSettings);
-  updateSiteSettingsPartial: (input: SiteSettingsInput) -> (SiteSettings);
-  upsertFaqItem: (input: FaqItemInput) -> (FaqItem);
-  upsertHeroSlide: (input: HeroSlideInput) -> (HeroSlide);
-  validateAdminSession: (token: text) -> (bool);
+  updateCoupon: (code: text, input: CouponInput) ->
+   (variant {
+      err: text;
+      ok: Coupon;
+    });
+  updateFAQ: (id: text, input: FaqItemInput) ->
+   (variant {
+      err: text;
+      ok: FaqItem;
+    });
+  updateHeroSlide: (id: text, input: HeroSlideInput) ->
+   (variant {
+      err: text;
+      ok: HeroSlide;
+    });
+  updateOrderStatus: (id: text, status: OrderStatus) ->
+   (variant {
+      err: text;
+      ok: Order;
+    });
+  updateProduct: (id: text, input: ProductInput) ->
+   (variant {
+      err: text;
+      ok: Product;
+    });
+  updateSiteSettings: (input: SiteSettings) ->
+   (variant {
+      err: text;
+      ok: SiteSettings;
+    });
+  updateSiteSettingsPartial: (input: SiteSettingsInput) ->
+   (variant {
+      err: text;
+      ok: SiteSettings;
+    });
+  upsertFaqItem: (input: FaqItemInput) -> (variant {
+                                             err: text;
+                                             ok: FaqItem;
+                                           });
+  upsertHeroSlide: (input: HeroSlideInput) ->
+   (variant {
+      err: text;
+      ok: HeroSlide;
+    });
   validateCoupon: (code: text) -> (CouponValidation) query;
 }

@@ -1,7 +1,8 @@
 module {
-  // ---- Admin Auth ----
-  public type AdminAuth = {
-    var passwordHash : Text; // plain text for simplicity; default "Farm72@Admin"
+  // ---- Admin Auth (Internet Identity principal-based) ----
+  // Stores the admin principal as text; null = no admin set yet (bootstrap state)
+  public type AdminPrincipalStore = {
+    var adminPrincipalText : ?Text;
   };
 
   // ---- Site Settings ----
@@ -33,6 +34,7 @@ module {
     imageUrl : Text;
     title : Text;
     subtitle : Text;
+    highlight : Text;
     displayOrder : Nat;
     isVisible : Bool;
   };
@@ -42,6 +44,7 @@ module {
     imageUrl : Text;
     title : Text;
     subtitle : Text;
+    highlight : Text;
     displayOrder : Nat;
     isVisible : Bool;
   };

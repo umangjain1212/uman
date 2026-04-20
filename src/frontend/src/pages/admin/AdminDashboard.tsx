@@ -83,7 +83,9 @@ export function AdminDashboard() {
     queryKey: ["admin-analytics"],
     queryFn: async () => {
       if (!actor) throw new Error("No actor");
-      return actor.getAnalyticsSummary();
+      const result = await actor.getAnalyticsSummary();
+      if (result.__kind__ === "ok") return result.ok;
+      throw new Error(result.err);
     },
     enabled,
   });
@@ -96,7 +98,9 @@ export function AdminDashboard() {
     queryKey: ["admin-recent-orders"],
     queryFn: async () => {
       if (!actor) throw new Error("No actor");
-      return actor.getRecentOrders(BigInt(10));
+      const result = await actor.getRecentOrders(BigInt(10));
+      if (result.__kind__ === "ok") return result.ok;
+      throw new Error(result.err);
     },
     enabled,
   });
@@ -109,7 +113,9 @@ export function AdminDashboard() {
     queryKey: ["admin-top-products"],
     queryFn: async () => {
       if (!actor) throw new Error("No actor");
-      return actor.getTopProducts(BigInt(5));
+      const result = await actor.getTopProducts(BigInt(5));
+      if (result.__kind__ === "ok") return result.ok;
+      throw new Error(result.err);
     },
     enabled,
   });

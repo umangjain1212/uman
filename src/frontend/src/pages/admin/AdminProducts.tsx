@@ -46,7 +46,9 @@ export function AdminProducts() {
     queryKey: ["admin-products"],
     queryFn: async () => {
       if (!actor) throw new Error("No actor");
-      return actor.getAdminProducts();
+      const result = await actor.getAdminProducts();
+      if (result.__kind__ === "ok") return result.ok;
+      throw new Error(result.err);
     },
     enabled,
   });
@@ -54,22 +56,31 @@ export function AdminProducts() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!actor) throw new Error("No actor");
-      const ok = await actor.deleteProduct(id);
-      if (!ok) throw new Error("Delete failed");
+      console.log("[AdminProducts] deleteProduct id:", id);
+      const result = await actor.deleteProduct(id);
+      if (result.__kind__ === "ok") {
+        if (!result.ok) throw new Error("Delete failed");
+        console.log("[AdminProducts] deleteProduct success");
+      } else {
+        throw new Error(result.err);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
       toast.success("Product deleted successfully");
     },
-    onError: () => toast.error("Failed to delete product"),
+    onError: (err) => {
+      console.error("[AdminProducts] deleteProduct error:", err);
+      toast.error("Failed to delete product");
+    },
   });
 
   const toggleMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!actor) throw new Error("No actor");
       const result = await actor.toggleProductVisibility(id);
-      if (!result) throw new Error("Toggle failed");
-      return result;
+      if (result.__kind__ === "ok") return result.ok;
+      throw new Error(result.err);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });

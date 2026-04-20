@@ -1,73 +1,62 @@
 import Map "mo:core/Map";
-import Time "mo:core/Time";
-import Int "mo:core/Int";
+import Debug "mo:core/Debug";
 import ContentTypes "../types/content";
 
 module {
-  // ---- Admin Auth ----
-  let DEFAULT_PASSWORD = "Farm72@Admin";
-  let SESSION_TTL_NS : Int = 86_400_000_000_000; // 24 hours in nanoseconds
+  // ---- Admin Principal Helpers ----
 
-  public func adminLogin(
-    adminAuth : ContentTypes.AdminAuth,
-    sessions : Map.Map<Text, Int>,
-    username : Text,
-    password : Text,
-  ) : { #ok : Text; #err : Text } {
-    if (username != "admin") {
-      return #err("Invalid credentials");
-    };
-    if (password != adminAuth.passwordHash) {
-      return #err("Invalid credentials");
-    };
-    // Generate a simple token based on timestamp
-    let now = Time.now();
-    let token = "farm72-" # now.toText();
-    let expiry = now + SESSION_TTL_NS;
-    sessions.add(token, expiry);
-    #ok(token);
+  public func initAdminPrincipalStore() : ContentTypes.AdminPrincipalStore {
+    { var adminPrincipalText = null };
   };
 
-  public func validateAdminSession(sessions : Map.Map<Text, Int>, token : Text) : Bool {
-    switch (sessions.get(token)) {
-      case null false;
-      case (?expiry) {
-        if (Time.now() > expiry) {
-          sessions.remove(token);
-          false;
-        } else {
-          true;
-        };
+  public func isAdmin(store : ContentTypes.AdminPrincipalStore, caller : Principal) : Bool {
+    switch (store.adminPrincipalText) {
+      case null false; // no admin set yet — no one is admin
+      case (?txt) {
+        caller.toText() == txt;
       };
     };
   };
 
-  public func adminLogout(sessions : Map.Map<Text, Int>, token : Text) : () {
-    sessions.remove(token);
-  };
-
-  public func changeAdminPassword(
-    adminAuth : ContentTypes.AdminAuth,
-    sessions : Map.Map<Text, Int>,
-    token : Text,
-    currentPassword : Text,
-    newPassword : Text,
+  public func setAdminPrincipal(
+    store : ContentTypes.AdminPrincipalStore,
+    caller : Principal,
+    newAdmin : Principal,
   ) : { #ok : (); #err : Text } {
-    if (not validateAdminSession(sessions, token)) {
-      return #err("Invalid or expired session");
+    // Allow bootstrap (no admin set yet) OR only existing admin can change it
+    let callerIsAdmin = isAdmin(store, caller);
+    let isBootstrap = store.adminPrincipalText == null;
+    if (not isBootstrap and not callerIsAdmin) {
+      return #err("Unauthorized: Only current admin can change admin principal");
     };
-    if (currentPassword != adminAuth.passwordHash) {
-      return #err("Current password is incorrect");
-    };
-    if (newPassword.size() < 6) {
-      return #err("New password must be at least 6 characters");
-    };
-    adminAuth.passwordHash := newPassword;
+    store.adminPrincipalText := ?newAdmin.toText();
+    Debug.print("[Farm72] Admin principal set to: " # newAdmin.toText());
     #ok(());
   };
 
-  public func initAdminAuth() : ContentTypes.AdminAuth {
-    { var passwordHash = DEFAULT_PASSWORD };
+  // Bootstrap: caller becomes admin (first-login-becomes-admin flow).
+  // If admin already set, only the current admin can reassign.
+  public func bootstrapAdmin(
+    store : ContentTypes.AdminPrincipalStore,
+    caller : Principal,
+  ) : { #ok : (); #err : Text } {
+    let callerIsAdmin = isAdmin(store, caller);
+    let isBootstrap = store.adminPrincipalText == null;
+    if (not isBootstrap and not callerIsAdmin) {
+      return #err("Unauthorized: Only current admin can change admin principal");
+    };
+    store.adminPrincipalText := ?caller.toText();
+    Debug.print("[Farm72] Admin principal bootstrapped to caller: " # caller.toText());
+    #ok(());
+  };
+
+  public func getAdminPrincipal(store : ContentTypes.AdminPrincipalStore) : ?Text {
+    store.adminPrincipalText;
+  };
+
+  // Returns true if an admin principal has been set (bootstrap complete).
+  public func hasAdminPrincipal(store : ContentTypes.AdminPrincipalStore) : Bool {
+    store.adminPrincipalText != null;
   };
 
   // ---- Site Settings ----
@@ -91,15 +80,17 @@ module {
       maintenanceMode = switch (input.maintenanceMode) { case (?v) v; case null current.maintenanceMode };
     };
     settings.value := updated;
+    Debug.print("[Farm72] Site settings updated");
     updated;
   };
 
-  // Keep backward compat for full-replace update
+  // Full-replace update
   public func updateSettings(
     settings : { var value : ContentTypes.SiteSettings },
     updated : ContentTypes.SiteSettings,
   ) : ContentTypes.SiteSettings {
     settings.value := updated;
+    Debug.print("[Farm72] Site settings replaced");
     updated;
   };
 
@@ -122,10 +113,12 @@ module {
       imageUrl = input.imageUrl;
       title = input.title;
       subtitle = input.subtitle;
+      highlight = input.highlight;
       displayOrder = input.displayOrder;
       isVisible = input.isVisible;
     };
     slides.add(input.id, slide);
+    Debug.print("[Farm72] Hero slide upserted: " # input.id);
     slide;
   };
 
@@ -134,6 +127,7 @@ module {
       case null false;
       case (?_) {
         slides.remove(id);
+        Debug.print("[Farm72] Hero slide deleted: " # id);
         true;
       };
     };
@@ -181,105 +175,17 @@ module {
     // Seed hero slides if empty
     if (heroSlides.isEmpty()) {
       let slides : [ContentTypes.HeroSlide] = [
-        { id = "hero1"; imageUrl = "/assets/hero1.jpg"; title = "Farm72: Pure Cold Pressed Oil & Buransh Juice"; subtitle = "100% Natural | Chemical Free | No Preservatives Added | Purely Natural"; displayOrder = 1; isVisible = true },
-        { id = "hero2"; imageUrl = "/assets/hero2.jpg"; title = "Farm72: Pure Cold Pressed Oil & Buransh Juice"; subtitle = "100% Natural | Chemical Free | No Preservatives Added | Purely Natural"; displayOrder = 2; isVisible = true },
-        { id = "hero3"; imageUrl = "/assets/hero3.jpg"; title = "Farm72: Pure Cold Pressed Oil & Buransh Juice"; subtitle = "100% Natural | Chemical Free | No Preservatives Added | Purely Natural"; displayOrder = 3; isVisible = true },
-        { id = "hero4"; imageUrl = "/assets/hero4.jpg"; title = "Farm72: Pure Cold Pressed Oil & Buransh Juice"; subtitle = "100% Natural | Chemical Free | No Preservatives Added | Purely Natural"; displayOrder = 4; isVisible = true },
-        { id = "hero5"; imageUrl = "/assets/hero5.jpg"; title = "Farm72: Pure Cold Pressed Oil & Buransh Juice"; subtitle = "100% Natural | Chemical Free | No Preservatives Added | Purely Natural"; displayOrder = 5; isVisible = true },
-        { id = "hero6"; imageUrl = "/assets/hero6.jpg"; title = "Farm72: Pure Cold Pressed Oil & Buransh Juice"; subtitle = "100% Natural | Chemical Free | No Preservatives Added | Purely Natural"; displayOrder = 6; isVisible = true },
+        { id = "slide-1"; imageUrl = "/assets/images/hero1.png"; title = "Pure Cold Pressed Oils"; subtitle = "Healthy Living Starts Here"; highlight = "Pressed"; displayOrder = 1; isVisible = true },
+        { id = "slide-2"; imageUrl = "/assets/images/hero2.png"; title = "Wood Pressed Tradition"; subtitle = "Slow. Natural. Powerful"; highlight = "Tradition"; displayOrder = 2; isVisible = true },
+        { id = "slide-3"; imageUrl = "/assets/images/hero3.png"; title = "From Pure Seeds"; subtitle = "Nothing Added. Nothing Removed"; highlight = "Pure"; displayOrder = 3; isVisible = true },
+        { id = "slide-4"; imageUrl = "/assets/images/hero4.jpg"; title = "Himalayan Buransh Juice"; subtitle = "Pure. Refreshing. Naturally Powerful"; highlight = "Buransh"; displayOrder = 4; isVisible = true },
+        { id = "slide-5"; imageUrl = "/assets/images/hero5.jpg"; title = "Crafted for Purity"; subtitle = "Premium Quality Oils"; highlight = "Purity"; displayOrder = 5; isVisible = true },
+        { id = "slide-6"; imageUrl = "/assets/images/hero7.jpg"; title = "Farm72 Naturals"; subtitle = "Straight from Nature to Your Kitchen"; highlight = "Naturals"; displayOrder = 6; isVisible = true },
       ];
       for (s in slides.vals()) { heroSlides.add(s.id, s) };
+      Debug.print("[Farm72] Hero slides seeded (6 slides)");
     };
-
-    // Seed FAQ items if empty — only seeds on first initialization, preserves user edits
-    if (faqItems.isEmpty()) {
-      let faqs : [ContentTypes.FaqItem] = [
-        {
-          id = "faq1";
-          question = "Cold Pressed Oil kya hota hai?";
-          answer = "Cold Pressed Oil woh tel hota hai jo beejo ya akhrot se bina kisi garmi ke nikala jaata hai. Beejo ko mechanically press kiya jaata hai kam temperature par — ise Kacchi Ghani process bhi kehte hain. Isse saare natural nutrients, vitamins, aur antioxidants preserve rehte hain.";
-          displayOrder = 1;
-          isVisible = true;
-        },
-        {
-          id = "faq2";
-          question = "Cold Pressed aur Expeller Pressed mein kya fark hai?";
-          answer = "Cold Pressed oil 49°C se kam temperature par nikala jaata hai, jo saare nutrients preserve karta hai. Expeller Pressed mein friction se 60-99°C tak temperature badh jaata hai jisse kai natural compounds destroy ho jaate hain. Cold Pressed zyada healthy aur natural hota hai.";
-          displayOrder = 2;
-          isVisible = true;
-        },
-        {
-          id = "faq3";
-          question = "Cold Pressed oil ko Refined Oil se better kyun maana jaata hai?";
-          answer = "Refined oil mein high heat, chemicals (hexane), bleaching, aur deodorization hoti hai jo zyada nutrients destroy kar deti hai. Cold Pressed oil mein koi chemical treatment nahi hoti — natural vitamins, omega fatty acids, aur antioxidants poore rehte hain. Isliye Cold Pressed far healthier hai.";
-          displayOrder = 3;
-          isVisible = true;
-        },
-        {
-          id = "faq4";
-          question = "Kya Cold Pressed Oil mein tali cheezein ban sakti hain?";
-          answer = "Haan! Farm72 ke Cold Pressed oils moderate temperature par cooking ke liye perfectly suitable hain. Talna, tadka lagana, ya sabji banana — sab ke liye use kar sakte hain. Bas bahut high flame se bachein taaki nutrients preserve rahein.";
-          displayOrder = 4;
-          isVisible = true;
-        },
-        {
-          id = "faq5";
-          question = "Shelf life kitni hoti hai Cold Pressed Oil ki?";
-          answer = "Farm72 ke Cold Pressed oils ki shelf life manufacturing date se 12 mahine hai. Inhe cool, dry jagah mein direct sunlight se door store karein. Khulne ke baad 6 mahine mein use kar lein best quality ke liye.";
-          displayOrder = 5;
-          isVisible = true;
-        },
-        {
-          id = "faq6";
-          question = "Tel mein talaab (sediment) kyun dikhta hai?";
-          answer = "Yeh bilkul safe hai! Kyunki Farm72 ke oils kisi bhi chemical ya solvent se filter nahi kiye jaate, oil seeds ke natural particles neeche settle ho sakte hain. Yeh purity ki nishaani hai — use karne se pehle bottle ko achhe se shake kar lein.";
-          displayOrder = 6;
-          isVisible = true;
-        },
-        {
-          id = "faq7";
-          question = "Kya yeh oils lab tested hain?";
-          answer = "Haan! Farm72 ke saare products quality check se guzarte hain. Hum ensure karte hain ki koi bhi product pure aur natural ho bina kisi adulteration ke. No chemicals, no artificial additives, no external processing agents.";
-          displayOrder = 7;
-          isVisible = true;
-        },
-        {
-          id = "faq8";
-          question = "Buransh Juice kya hai?";
-          answer = "Buransh Juice Himalayan Rhododendron (Buransh) ke phoolon se banaya jaata hai. Yeh vibrant laal phool spring mein khilte hain aur Himalayas ki Valley of Flowers se fresh handpick kiye jaate hain. Bilkul pure aur natural — koi preservative nahi, koi chemical nahi.";
-          displayOrder = 8;
-          isVisible = true;
-        },
-        {
-          id = "faq9";
-          question = "Buransh Juice peene ke kya fayde hain?";
-          answer = "Buransh Juice garmiyon mein sharir ko thanda rakhta hai, liver health support karta hai, digestion mein madad karta hai, aur antioxidants ka rich source hai. Traditionally heart health ke liye bhi use hota hai aur inflammation kam karta hai.";
-          displayOrder = 9;
-          isVisible = true;
-        },
-        {
-          id = "faq10";
-          question = "Buransh Juice mein koi preservative hai?";
-          answer = "Bilkul nahi! Farm72 Buransh Juice freshly extracted hai aur 100% preservative-free aur chemical-free hai. Koi artificial color, flavor, ya preservative nahi daala jaata. Pure Himalayan goodness.";
-          displayOrder = 10;
-          isVisible = true;
-        },
-        {
-          id = "faq11";
-          question = "Kya Farm72 products safe hain?";
-          answer = "Haan, poori tarah se safe hain. Farm72 ke saare products 100% pure aur natural hain — koi additives nahi, koi chemicals nahi, traditional extraction process. As the oil is not filtered using any chemical or solvents, oil seed particles might settle at the bottom which is completely natural and safe for consumption.";
-          displayOrder = 11;
-          isVisible = true;
-        },
-        {
-          id = "faq12";
-          question = "Farm72 se order kaise kare?";
-          answer = "Farm72 se order karna bahut simple hai — hamare website ke Shop section mein jaayein, product choose karein, cart mein add karein, aur checkout karein. Aap WhatsApp pe +91 7500010488 par bhi directly order kar sakte hain ya phone pe contact kar sakte hain.";
-          displayOrder = 12;
-          isVisible = true;
-        },
-      ];
-      for (f in faqs.vals()) { faqItems.add(f.id, f) };
-    };
+    // FAQ is hardcoded in frontend only — no backend FAQ management needed
+    ignore faqItems;
   };
 };

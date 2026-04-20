@@ -1,9 +1,12 @@
+import { createActor } from "@/backend";
+import type { SiteSettings } from "@/backend.d";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useActor } from "@caffeineai/core-infrastructure";
+import { useQuery } from "@tanstack/react-query";
 import {
   AlertCircle,
   CheckCircle2,
@@ -16,8 +19,7 @@ import {
   Send,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { useState } from "react";
-import { createActor } from "../backend";
+import { useMemo, useState } from "react";
 
 interface ContactForm {
   name: string;
@@ -31,26 +33,18 @@ interface FormErrors {
   message?: string;
 }
 
-const contactInfo = [
-  {
-    icon: Mail,
-    label: "Email",
-    value: "info@farm72.in",
-    href: "mailto:info@farm72.in",
-  },
-  {
-    icon: Phone,
-    label: "Phone",
-    value: "+91 7500010488",
-    href: "tel:+917500010488",
-  },
-  {
-    icon: MapPin,
-    label: "Address",
-    value: "Farm72, India",
-    href: null,
-  },
-];
+function useSiteSettings() {
+  const { actor, isFetching } = useActor(createActor);
+  return useQuery<SiteSettings>({
+    queryKey: ["siteSettings"],
+    queryFn: async () => {
+      if (!actor) throw new Error("actor not ready");
+      return actor.getSiteSettings();
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 const faqs = [
   {
@@ -68,7 +62,36 @@ const faqs = [
 ];
 
 export function Contact() {
-  const { actor } = useActor(createActor);
+  const { data: settings } = useSiteSettings();
+
+  const whatsappRaw = settings?.whatsappNumber?.trim() || "+91 7500010488";
+  const whatsappDigits = whatsappRaw.replace(/\D/g, "");
+  const contactEmail = settings?.contactEmail?.trim() || "info@farm72.in";
+
+  const contactInfo = useMemo(
+    () => [
+      {
+        icon: Mail,
+        label: "Email",
+        value: contactEmail,
+        href: `mailto:${contactEmail}`,
+      },
+      {
+        icon: Phone,
+        label: "Phone",
+        value: whatsappRaw,
+        href: `tel:+${whatsappDigits}`,
+      },
+      {
+        icon: MapPin,
+        label: "Address",
+        value: "Farm72, India",
+        href: null,
+      },
+    ],
+    [contactEmail, whatsappRaw, whatsappDigits],
+  );
+
   const [form, setForm] = useState<ContactForm>({
     name: "",
     email: "",
@@ -113,19 +136,14 @@ export function Contact() {
     setIsSubmitting(true);
     setSubmitStatus("idle");
     try {
-      const success = await actor!.submitContact({
-        name: form.name.trim(),
-        email: form.email.trim(),
-        message: form.message.trim(),
-      });
-      if (success) {
-        setSubmitStatus("success");
-        setForm({ name: "", email: "", message: "" });
-        setErrors({});
-      } else {
-        setSubmitStatus("error");
-        setErrorMessage("We couldn't send your message. Please try again.");
-      }
+      // Build WhatsApp message with name + email + message
+      const phone = whatsappDigits || "917500010488";
+      const prefillText = `Name: ${form.name.trim()}\nEmail: ${form.email.trim()}\nMessage: ${form.message.trim()}`;
+      const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(prefillText)}`;
+      window.open(waUrl, "_blank");
+      setSubmitStatus("success");
+      setForm({ name: "", email: "", message: "" });
+      setErrors({});
     } catch {
       setSubmitStatus("error");
       setErrorMessage(
@@ -208,7 +226,7 @@ export function Contact() {
 
                 {/* WhatsApp CTA */}
                 <a
-                  href="https://wa.me/917500010488"
+                  href={`https://wa.me/${whatsappDigits}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-6 flex items-center gap-2 w-full justify-center px-4 py-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-smooth font-medium text-sm"

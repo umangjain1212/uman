@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { type CartItem, useCartStore } from "@/store/cartStore";
 import { useActor } from "@caffeineai/core-infrastructure";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   CheckCircle,
@@ -14,7 +15,7 @@ import {
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { type ShoppingItem, createActor } from "../backend";
+import { PaymentMethod, type ShoppingItem, createActor } from "../backend";
 
 interface FormData {
   name: string;
@@ -28,15 +29,22 @@ interface FormData {
 
 type FormErrors = Partial<FormData>;
 
+const FALLBACK_WHATSAPP = "917500010488";
+
 function buildWhatsAppUrl(
   form: FormData,
   items: CartItem[],
   total: number,
+  whatsappNumber?: string,
 ): string {
-  const itemLines = items.map(
-    (i) =>
-      `• ${i.name} × ${i.quantity} = ₹${(i.price * i.quantity).toLocaleString("en-IN")}`,
-  );
+  // Strip leading + or spaces; fall back to hardcoded number
+  const rawNumber = whatsappNumber ?? FALLBACK_WHATSAPP;
+  const cleanNumber = rawNumber.replace(/^\+/, "").replace(/\s/g, "");
+  const safeNumber = cleanNumber || FALLBACK_WHATSAPP;
+  const itemLines = items.map((i) => {
+    const variantPart = i.variantLabel ? ` (${i.variantLabel})` : "";
+    return `• ${i.name}${variantPart} × ${i.quantity} = ₹${(i.price * i.quantity).toLocaleString("en-IN")}`;
+  });
   const message = [
     "🌿 *Farm72 New Order*",
     "",
@@ -52,7 +60,7 @@ function buildWhatsAppUrl(
     "",
     "Please confirm and process my order. Thank you! 🙏",
   ].join("\n");
-  return `https://wa.me/917500010488?text=${encodeURIComponent(message)}`;
+  return `https://wa.me/${safeNumber}?text=${encodeURIComponent(message)}`;
 }
 
 export function Checkout() {
@@ -69,6 +77,17 @@ export function Checkout() {
 
   const { actor, isFetching } = useActor(createActor);
 
+  // Fetch site settings to get the dynamic WhatsApp number
+  const { data: siteSettings } = useQuery({
+    queryKey: ["siteSettings"],
+    queryFn: async () => {
+      if (!actor) return null;
+      return actor.getSiteSettings();
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 60_000,
+  });
+
   const [form, setForm] = useState<FormData>({
     name: "",
     phone: "",
@@ -80,6 +99,9 @@ export function Checkout() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isPayingCard, setIsPayingCard] = useState(false);
+
+  const deliveryFee = totalPrice >= 500 ? 0 : 50;
+  const grandTotal = totalPrice + deliveryFee;
 
   // Handle success redirect: show success, clear cart
   useEffect(() => {
@@ -121,6 +143,31 @@ export function Checkout() {
     }
     setIsPayingCard(true);
     try {
+      // Store order as pending before redirecting to Stripe
+      const fullAddress = `${form.address}, ${form.city}, ${form.state} - ${form.pincode}`;
+      const orderInput = {
+        customerName: form.name,
+        phone: form.phone,
+        email: form.email,
+        address: fullAddress,
+        totalAmount: BigInt(Math.round(grandTotal)),
+        paymentMethod: PaymentMethod.Stripe,
+        items: items.map((item) => ({
+          productId: item.productId.split("-")[0] ?? item.productId,
+          variantId: item.variantId ?? "",
+          productName: item.name,
+          variantLabel: item.variantLabel ?? "",
+          quantity: BigInt(item.quantity),
+          unitPrice: BigInt(Math.round(item.price)),
+        })),
+      };
+      try {
+        await actor.storeOrder(orderInput);
+      } catch (orderErr) {
+        console.error("storeOrder error:", orderErr);
+        // Non-blocking: proceed to Stripe even if order store fails
+      }
+
       const shoppingItems: ShoppingItem[] = items.map((item) => ({
         productName: item.name,
         currency: "INR",
@@ -146,13 +193,47 @@ export function Checkout() {
     }
   }
 
-  function handleWhatsApp() {
+  async function handleWhatsApp() {
     if (!validate()) return;
     if (items.length === 0) {
       toast.error("Your cart is empty");
       return;
     }
-    window.open(buildWhatsAppUrl(form, items, totalPrice), "_blank");
+    if (!actor || isFetching) {
+      toast.error("Connecting to backend, please try again in a moment.");
+      return;
+    }
+    try {
+      const fullAddress = `${form.address}, ${form.city}, ${form.state} - ${form.pincode}`;
+      const orderInput = {
+        customerName: form.name,
+        phone: form.phone,
+        email: form.email,
+        address: fullAddress,
+        totalAmount: BigInt(Math.round(grandTotal)),
+        paymentMethod: PaymentMethod.WhatsApp,
+        items: items.map((item) => ({
+          productId: item.productId.split("-")[0] ?? item.productId,
+          variantId: item.variantId ?? "",
+          productName: item.name,
+          variantLabel: item.variantLabel ?? "",
+          quantity: BigInt(item.quantity),
+          unitPrice: BigInt(Math.round(item.price)),
+        })),
+      };
+      const result = await actor.storeOrder(orderInput);
+      if (result.__kind__ === "err") {
+        console.error("storeOrder error:", result.err);
+        // Non-blocking: still proceed to WhatsApp even if backend store fails
+      }
+    } catch (err) {
+      console.error("storeOrder exception:", err);
+      // Non-blocking: proceed anyway
+    }
+    window.open(
+      buildWhatsAppUrl(form, items, totalPrice, siteSettings?.whatsappNumber),
+      "_blank",
+    );
   }
 
   // Success state
@@ -215,9 +296,6 @@ export function Checkout() {
       </div>
     );
   }
-
-  const deliveryFee = totalPrice >= 500 ? 0 : 50;
-  const grandTotal = totalPrice + deliveryFee;
 
   return (
     <div className="py-10 min-h-screen">
@@ -422,6 +500,11 @@ export function Checkout() {
                       <p className="text-sm font-medium truncate">
                         {item.name}
                       </p>
+                      {item.variantLabel && (
+                        <p className="text-xs text-muted-foreground">
+                          {item.variantLabel}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         × {item.quantity}
                       </p>

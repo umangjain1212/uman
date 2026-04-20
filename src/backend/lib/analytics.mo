@@ -1,5 +1,4 @@
 import Map "mo:core/Map";
-import Array "mo:core/Array";
 import OrderTypes "../types/orders";
 import AnalyticsTypes "../types/analytics";
 

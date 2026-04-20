@@ -1,13 +1,17 @@
 import { createActor } from "@/backend";
+import type { Product as BackendProduct } from "@/backend.d";
 import { ProductCard } from "@/components/ProductCard";
 import { SEO } from "@/components/SEO";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { getProductById, products } from "@/data/products";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Product } from "@/data/products";
+import { mapBackendProduct } from "@/lib/productMapper";
 import { useCartStore } from "@/store/cartStore";
 import { useActor } from "@caffeineai/core-infrastructure";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import {
   Check,
@@ -20,31 +24,93 @@ import {
   X,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+
+function ProductDetailSkeleton() {
+  return (
+    <div className="py-8 min-h-screen">
+      <div className="container mx-auto px-4 sm:px-6">
+        <Skeleton className="h-4 w-48 mb-8" />
+        <div className="grid md:grid-cols-[3fr_2fr] gap-10 lg:gap-16 mb-16">
+          <Skeleton className="aspect-square rounded-2xl" />
+          <div className="space-y-5">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-10 w-3/4" />
+            <Skeleton className="h-4 w-20" />
+            <div className="flex gap-3">
+              <Skeleton className="h-16 w-28 rounded-xl" />
+              <Skeleton className="h-16 w-28 rounded-xl" />
+            </div>
+            <Skeleton className="h-12 w-40" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function ProductDetail() {
   const { id } = useParams({ strict: false }) as { id: string };
   const navigate = useNavigate();
-  const { actor } = useActor(createActor);
+  const { actor, isFetching: actorFetching } = useActor(createActor);
   const addItem = useCartStore((s) => s.addItem);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const items = useCartStore((s) => s.items);
 
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
-
-  // Variant selector — default to last (largest) variant
-  const product = getProductById(id);
-  const defaultVariantIdx = product?.variants ? product.variants.length - 1 : 0;
-  const [selectedVariantIdx, setSelectedVariantIdx] =
-    useState(defaultVariantIdx);
+  const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
 
   // Coupon state
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [couponError, setCouponError] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
+
+  // Fetch single product from backend
+  const { data: product, isLoading } = useQuery<Product | null>({
+    queryKey: ["product", id],
+    queryFn: async () => {
+      if (!actor) return null;
+      const raw: BackendProduct | null = await actor.getProduct(id);
+      if (!raw) return null;
+      return mapBackendProduct(raw);
+    },
+    enabled: !!actor && !actorFetching && !!id,
+    staleTime: 60_000,
+  });
+
+  // Fetch all products for "related" section
+  const { data: allProducts = [] } = useQuery<Product[]>({
+    queryKey: ["products-shop"],
+    queryFn: async () => {
+      if (!actor) return [];
+      const raw = await actor.getProducts();
+      return raw
+        .filter((p: BackendProduct) => p.isVisible)
+        .sort(
+          (a: BackendProduct, b: BackendProduct) =>
+            Number(a.displayOrder) - Number(b.displayOrder),
+        )
+        .map(mapBackendProduct);
+    },
+    enabled: !!actor && !actorFetching,
+    staleTime: 60_000,
+  });
+
+  // When product loads, default to the last (largest) variant
+  useEffect(() => {
+    if (product?.variants) {
+      setSelectedVariantIdx(product.variants.length - 1);
+    }
+  }, [product]);
+
+  if (isLoading || actorFetching) {
+    return <ProductDetailSkeleton />;
+  }
 
   if (!product) {
     return (
@@ -78,13 +144,14 @@ export function ProductDetail() {
   const discountAmount = Math.round((basePrice * couponDiscount) / 100);
   const finalPrice = basePrice - discountAmount;
 
-  const cartItemId = activeVariant
-    ? `${product.id}-${activeVariant.size.replace(/\s+/g, "")}`
-    : product.id;
+  const variantId = activeVariant
+    ? activeVariant.size.replace(/\s+/g, "")
+    : undefined;
+  const cartItemId = variantId ? `${product.id}-${variantId}` : product.id;
   const inCart = items.find((i) => i.productId === cartItemId);
 
-  // Related: same category first, fallback to random excluding current
-  const sameCategory = products.filter(
+  // Related: same category first, fallback to others
+  const sameCategory = allProducts.filter(
     (p) => p.id !== product.id && p.category === product.category,
   );
   const related =
@@ -92,7 +159,7 @@ export function ProductDetail() {
       ? sameCategory.slice(0, 3)
       : [
           ...sameCategory,
-          ...products
+          ...allProducts
             .filter(
               (p) => p.id !== product.id && p.category !== product.category,
             )
@@ -161,10 +228,11 @@ export function ProductDetail() {
   }
 
   function handleAddToCart() {
-    if (!product) return;
+    // product is guaranteed non-null here — we return early above if !product
+    const p = product!;
     const itemName = activeVariant
-      ? `${product.name} – ${activeVariant.size}`
-      : product.name;
+      ? `${p.name} – ${activeVariant.size}`
+      : p.name;
 
     if (inCart) {
       updateQuantity(cartItemId, inCart.quantity + qty);
@@ -173,7 +241,9 @@ export function ProductDetail() {
         productId: cartItemId,
         name: itemName,
         price: finalPrice,
-        imageUrl: product.imageUrl,
+        imageUrl: p.imageUrl,
+        variantId: variantId,
+        variantLabel: activeVariant?.size,
       });
       if (qty > 1) updateQuantity(cartItemId, qty);
     }
@@ -190,7 +260,6 @@ export function ProductDetail() {
     });
   }
 
-  // Reset coupon when variant changes
   function handleVariantChange(idx: number) {
     setSelectedVariantIdx(idx);
     if (appliedCoupon) {

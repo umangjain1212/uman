@@ -47,7 +47,10 @@ export function AdminCoupons() {
     queryKey: ["admin-coupons"],
     queryFn: async () => {
       if (!actor) throw new Error("No actor");
-      return actor.getCoupons();
+      // Use admin-specific endpoint to get all coupons
+      const result = await actor.getAdminCoupons();
+      if (result.__kind__ === "ok") return result.ok;
+      throw new Error(result.err);
     },
     enabled,
   });
@@ -55,6 +58,7 @@ export function AdminCoupons() {
   const addMutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("No actor");
+      console.log("[AdminCoupons] createCoupon:", form.code);
       const expiryTimestamp = form.expiry
         ? BigInt(new Date(form.expiry).getTime()) * BigInt(1_000_000)
         : undefined;
@@ -65,7 +69,12 @@ export function AdminCoupons() {
         maxUses: BigInt(form.maxUses),
         expiryDate: expiryTimestamp,
       };
-      return actor.createCoupon(input);
+      const result = await actor.createCoupon(input);
+      if (result.__kind__ === "ok") {
+        console.log("[AdminCoupons] createCoupon success:", result.ok.code);
+        return result.ok;
+      }
+      throw new Error(result.err);
     },
     onSuccess: (coupon) => {
       queryClient.invalidateQueries({ queryKey: ["admin-coupons"] });
@@ -73,38 +82,44 @@ export function AdminCoupons() {
       setDialogOpen(false);
       toast.success(`Coupon ${coupon.code} created!`);
     },
-    onError: () => toast.error("Failed to create coupon"),
+    onError: (err) =>
+      toast.error(
+        `Failed to create coupon: ${err instanceof Error ? err.message : "Unknown error"}`,
+      ),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (code: string) => {
       if (!actor) throw new Error("No actor");
-      const ok = await actor.deleteCoupon(code);
-      if (!ok) throw new Error("Delete failed");
+      console.log("[AdminCoupons] deleteCoupon:", code);
+      const result = await actor.deleteCoupon(code);
+      if (result.__kind__ === "ok") {
+        console.log("[AdminCoupons] deleteCoupon success");
+        return;
+      }
+      throw new Error(result.err);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-coupons"] });
       toast.success("Coupon deleted");
     },
-    onError: () => toast.error("Failed to delete coupon"),
+    onError: (err) => {
+      console.error("[AdminCoupons] deleteCoupon error:", err);
+      toast.error("Failed to delete coupon");
+    },
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async (coupon: Coupon) => {
+    mutationFn: async (code: string) => {
       if (!actor) throw new Error("No actor");
-      const input: CouponInput = {
-        code: coupon.code,
-        discountPercent: coupon.discountPercent,
-        isActive: !coupon.isActive,
-        maxUses: coupon.maxUses,
-        expiryDate: coupon.expiryDate,
-      };
-      const result = await actor.updateCoupon(coupon.code, input);
-      if (!result) throw new Error("Toggle failed");
-      return result;
+      // Use dedicated toggleCoupon backend method
+      const result = await actor.toggleCoupon(code);
+      if (result.__kind__ === "ok") return result.ok;
+      throw new Error(result.err);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-coupons"] });
+      toast.success("Coupon status updated");
     },
     onError: () => toast.error("Failed to toggle coupon"),
   });
@@ -232,7 +247,7 @@ export function AdminCoupons() {
                   data-ocid="admin-coupon-submit-button"
                 >
                   {addMutation.isPending ? (
-                    <span className="w-4 h-4 border-2 border-primary-foreground/40 border-t-primary-foreground rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-primary-foreground/40 border-t-primary-foreground rounded-full animate-spin mr-2" />
                   ) : null}
                   {addMutation.isPending ? "Creating..." : "Create Coupon"}
                 </Button>
@@ -342,7 +357,7 @@ export function AdminCoupons() {
                   <td className="admin-table-cell">
                     <Switch
                       checked={coupon.isActive}
-                      onCheckedChange={() => toggleMutation.mutate(coupon)}
+                      onCheckedChange={() => toggleMutation.mutate(coupon.code)}
                       disabled={toggleMutation.isPending}
                       data-ocid={`admin-coupon-toggle.${i + 1}`}
                     />

@@ -51,7 +51,10 @@ export function AdminOrders() {
     queryKey: ["admin-orders"],
     queryFn: async () => {
       if (!actor) throw new Error("No actor");
-      return actor.getOrders();
+      // Use admin-specific endpoint to get all orders
+      const result = await actor.getAdminOrders();
+      if (result.__kind__ === "ok") return result.ok;
+      throw new Error(result.err);
     },
     enabled,
   });
@@ -59,9 +62,18 @@ export function AdminOrders() {
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: OrderStatus }) => {
       if (!actor) throw new Error("No actor");
+      console.log(
+        "[AdminOrders] updateOrderStatus — id:",
+        id,
+        "status:",
+        status,
+      );
       const result = await actor.updateOrderStatus(id, status);
-      if (!result) throw new Error("Update failed");
-      return result;
+      if (result.__kind__ === "ok") {
+        console.log("[AdminOrders] updateOrderStatus success:", result.ok.id);
+        return result.ok;
+      }
+      throw new Error(result.err);
     },
     onSuccess: (updated) => {
       queryClient.setQueryData<Order[]>(
@@ -73,7 +85,10 @@ export function AdminOrders() {
       }
       toast.success(`Order ${updated.id} status updated`);
     },
-    onError: () => toast.error("Failed to update order status"),
+    onError: (err) => {
+      console.error("[AdminOrders] updateOrderStatus error:", err);
+      toast.error("Failed to update order status");
+    },
   });
 
   const allOrders = orders ?? [];

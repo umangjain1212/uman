@@ -1,33 +1,68 @@
 import Map "mo:core/Map";
-import Runtime "mo:core/Runtime";
-import AccessControl "mo:caffeineai-authorization/access-control";
+import Debug "mo:core/Debug";
+import Principal "mo:core/Principal";
 import ContentLib "../lib/content";
 import ContentTypes "../types/content";
 
 mixin (
-  accessControlState : AccessControl.AccessControlState,
+  adminPrincipalStore : ContentTypes.AdminPrincipalStore,
   siteSettings : { var value : ContentTypes.SiteSettings },
   heroSlides : Map.Map<Text, ContentTypes.HeroSlide>,
   faqItems : Map.Map<Text, ContentTypes.FaqItem>,
-  adminAuth : ContentTypes.AdminAuth,
-  adminSessions : Map.Map<Text, Int>,
 ) {
 
-  // ---- Admin Auth (Simple Password) ----
-  public func adminLogin(username : Text, password : Text) : async { #ok : Text; #err : Text } {
-    ContentLib.adminLogin(adminAuth, adminSessions, username, password);
+  // ---- Internet Identity Admin Auth ----
+
+  // setAdminPrincipal() (no-arg) is intentionally NOT defined here.
+  // It is defined in main.mo so it can also sync AccessControl.initialize().
+  // Defining it here would cause M0051 duplicate definition.
+
+  // Explicit-principal version: kept for backward compat.
+  // Admin can use this to transfer admin to a different principal.
+  public shared ({ caller }) func setAdminPrincipalExplicit(newAdmin : Principal) : async { #ok : (); #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
+    };
+    Debug.print("[Farm72] setAdminPrincipalExplicit called by: " # caller.toText());
+    let isBootstrap = adminPrincipalStore.adminPrincipalText == null;
+    if (isBootstrap) {
+      return ContentLib.bootstrapAdmin(adminPrincipalStore, caller);
+    };
+    ContentLib.setAdminPrincipal(adminPrincipalStore, caller, newAdmin);
   };
 
-  public func validateAdminSession(token : Text) : async Bool {
-    ContentLib.validateAdminSession(adminSessions, token);
+  // Returns the stored admin principal text (admin only).
+  public shared ({ caller }) func getAdminPrincipal() : async { #ok : ?Text; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
+    };
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    #ok(ContentLib.getAdminPrincipal(adminPrincipalStore));
   };
 
-  public func adminLogout(token : Text) : async () {
-    ContentLib.adminLogout(adminSessions, token);
+  // Frontend calls this to verify that the current II identity is the admin.
+  // Returns #ok if the caller is the admin, #err otherwise.
+  public shared ({ caller }) func checkIsAdmin() : async { #ok : (); #err : Text } {
+    Debug.print("[Farm72] checkIsAdmin called by: " # caller.toText());
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
+    };
+    if (ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      #ok(());
+    } else {
+      #err("Unauthorized: You are not the admin");
+    };
   };
 
-  public func changeAdminPassword(token : Text, currentPassword : Text, newPassword : Text) : async { #ok : (); #err : Text } {
-    ContentLib.changeAdminPassword(adminAuth, adminSessions, token, currentPassword, newPassword);
+  // Returns true if an admin principal has already been registered (bootstrap complete).
+  // Returns false if no admin is set yet (first-login-becomes-admin bootstrap is still open).
+  public query func hasAdmin() : async Bool {
+    switch (adminPrincipalStore.adminPrincipalText) {
+      case null false;
+      case (?_) true;
+    };
   };
 
   // ---- Site Settings ----
@@ -35,17 +70,27 @@ mixin (
     ContentLib.getSettings(siteSettings);
   };
 
-  // New partial-update endpoint — persists all settings fields including toggles
-  public func updateSiteSettingsPartial(input : ContentTypes.SiteSettingsInput) : async ContentTypes.SiteSettings {
-    ContentLib.updateSettingsFromInput(siteSettings, input);
+  // Partial-update endpoint — persists all settings fields including toggles.
+  // Requires admin caller.
+  public shared ({ caller }) func updateSiteSettingsPartial(input : ContentTypes.SiteSettingsInput) : async { #ok : ContentTypes.SiteSettings; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
+    };
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    #ok(ContentLib.updateSettingsFromInput(siteSettings, input));
   };
 
-  // Legacy full-replace endpoint — kept for backward compatibility
-  public shared ({ caller }) func updateSiteSettings(input : ContentTypes.SiteSettings) : async ContentTypes.SiteSettings {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can update site settings");
+  // Legacy full-replace endpoint — kept for backward compatibility.
+  public shared ({ caller }) func updateSiteSettings(input : ContentTypes.SiteSettings) : async { #ok : ContentTypes.SiteSettings; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    ContentLib.updateSettings(siteSettings, input);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    #ok(ContentLib.updateSettings(siteSettings, input));
   };
 
   // ---- Hero Slides ----
@@ -53,37 +98,49 @@ mixin (
     ContentLib.getHeroSlides(heroSlides);
   };
 
-  public shared ({ caller }) func addHeroSlide(input : ContentTypes.HeroSlideInput) : async ContentTypes.HeroSlide {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can manage hero slides");
+  public shared ({ caller }) func addHeroSlide(input : ContentTypes.HeroSlideInput) : async { #ok : ContentTypes.HeroSlide; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    ContentLib.upsertHeroSlide(heroSlides, input);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    #ok(ContentLib.upsertHeroSlide(heroSlides, input));
   };
 
-  public shared ({ caller }) func updateHeroSlide(id : Text, input : ContentTypes.HeroSlideInput) : async ?ContentTypes.HeroSlide {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can manage hero slides");
+  public shared ({ caller }) func updateHeroSlide(id : Text, input : ContentTypes.HeroSlideInput) : async { #ok : ContentTypes.HeroSlide; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
+    };
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
     };
     if (heroSlides.get(id) == null) {
-      return null;
+      return #err("Hero slide not found: " # id);
     };
     let updatedInput : ContentTypes.HeroSlideInput = { input with id = id };
-    ?ContentLib.upsertHeroSlide(heroSlides, updatedInput);
+    #ok(ContentLib.upsertHeroSlide(heroSlides, updatedInput));
   };
 
   // Backward-compat upsert
-  public shared ({ caller }) func upsertHeroSlide(input : ContentTypes.HeroSlideInput) : async ContentTypes.HeroSlide {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can manage hero slides");
+  public shared ({ caller }) func upsertHeroSlide(input : ContentTypes.HeroSlideInput) : async { #ok : ContentTypes.HeroSlide; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    ContentLib.upsertHeroSlide(heroSlides, input);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    #ok(ContentLib.upsertHeroSlide(heroSlides, input));
   };
 
-  public shared ({ caller }) func deleteHeroSlide(id : Text) : async Bool {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can delete hero slides");
+  public shared ({ caller }) func deleteHeroSlide(id : Text) : async { #ok : Bool; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    ContentLib.deleteHeroSlide(heroSlides, id);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    #ok(ContentLib.deleteHeroSlide(heroSlides, id));
   };
 
   // ---- FAQ ----
@@ -96,43 +153,58 @@ mixin (
     ContentLib.getFaqItems(faqItems);
   };
 
-  public shared ({ caller }) func addFAQ(input : ContentTypes.FaqItemInput) : async ContentTypes.FaqItem {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can manage FAQ items");
+  public shared ({ caller }) func addFAQ(input : ContentTypes.FaqItemInput) : async { #ok : ContentTypes.FaqItem; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    ContentLib.upsertFaqItem(faqItems, input);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    #ok(ContentLib.upsertFaqItem(faqItems, input));
   };
 
-  public shared ({ caller }) func updateFAQ(id : Text, input : ContentTypes.FaqItemInput) : async ?ContentTypes.FaqItem {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can manage FAQ items");
+  public shared ({ caller }) func updateFAQ(id : Text, input : ContentTypes.FaqItemInput) : async { #ok : ContentTypes.FaqItem; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
+    };
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
     };
     if (faqItems.get(id) == null) {
-      return null;
+      return #err("FAQ item not found: " # id);
     };
     let updatedInput : ContentTypes.FaqItemInput = { input with id = id };
-    ?ContentLib.upsertFaqItem(faqItems, updatedInput);
+    #ok(ContentLib.upsertFaqItem(faqItems, updatedInput));
   };
 
-  public shared ({ caller }) func deleteFAQ(id : Text) : async Bool {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can delete FAQ items");
+  public shared ({ caller }) func deleteFAQ(id : Text) : async { #ok : Bool; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    ContentLib.deleteFaqItem(faqItems, id);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    #ok(ContentLib.deleteFaqItem(faqItems, id));
   };
 
-  // Backward-compat upsert functions
-  public shared ({ caller }) func upsertFaqItem(input : ContentTypes.FaqItemInput) : async ContentTypes.FaqItem {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can manage FAQ items");
+  // Backward-compat upsert
+  public shared ({ caller }) func upsertFaqItem(input : ContentTypes.FaqItemInput) : async { #ok : ContentTypes.FaqItem; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    ContentLib.upsertFaqItem(faqItems, input);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    #ok(ContentLib.upsertFaqItem(faqItems, input));
   };
 
-  public shared ({ caller }) func deleteFaqItem(id : Text) : async Bool {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can delete FAQ items");
+  public shared ({ caller }) func deleteFaqItem(id : Text) : async { #ok : Bool; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    ContentLib.deleteFaqItem(faqItems, id);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    #ok(ContentLib.deleteFaqItem(faqItems, id));
   };
 };

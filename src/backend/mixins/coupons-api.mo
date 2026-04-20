@@ -1,25 +1,21 @@
 import Map "mo:core/Map";
-import Runtime "mo:core/Runtime";
-import AccessControl "mo:caffeineai-authorization/access-control";
+import Debug "mo:core/Debug";
+import Principal "mo:core/Principal";
+import ContentLib "../lib/content";
+import ContentTypes "../types/content";
 import CouponLib "../lib/coupons";
 import CouponTypes "../types/coupons";
 
 mixin (
-  accessControlState : AccessControl.AccessControlState,
+  adminPrincipalStore : ContentTypes.AdminPrincipalStore,
   coupons : Map.Map<Text, CouponTypes.Coupon>,
 ) {
-  // Seed default coupons on first use
-  private func ensureCouponsSeeded() {
-    CouponLib.seedDefaultCoupons(coupons);
-  };
-
-  // Public — used by customers at checkout
+  // Public — used by customers at checkout (no auth required)
   public query func validateCoupon(code : Text) : async CouponTypes.CouponValidation {
     CouponLib.validateCoupon(coupons, code);
   };
 
   public shared func applyCoupon(code : Text) : async CouponTypes.CouponValidation {
-    ensureCouponsSeeded();
     let validation = CouponLib.validateCoupon(coupons, code);
     switch (validation) {
       case (#Valid(_)) {
@@ -31,58 +27,86 @@ mixin (
   };
 
   // Admin reads — returns all coupons
-  public shared ({ caller }) func getAdminCoupons() : async [CouponTypes.Coupon] {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can view coupons");
+  public shared ({ caller }) func getAdminCoupons() : async { #ok : [CouponTypes.Coupon]; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    ensureCouponsSeeded();
-    CouponLib.getCoupons(coupons);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    Debug.print("[Farm72] getAdminCoupons called by: " # caller.toText());
+    #ok(CouponLib.getCoupons(coupons));
   };
 
   // Alias kept for backward compat
-  public shared ({ caller }) func getCoupons() : async [CouponTypes.Coupon] {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can view coupons");
+  public shared ({ caller }) func getCoupons() : async { #ok : [CouponTypes.Coupon]; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    ensureCouponsSeeded();
-    CouponLib.getCoupons(coupons);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    #ok(CouponLib.getCoupons(coupons));
   };
 
   // Admin mutations
-  public shared ({ caller }) func addCoupon(input : CouponTypes.CouponInput) : async CouponTypes.Coupon {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can create coupons");
+  public shared ({ caller }) func addCoupon(input : CouponTypes.CouponInput) : async { #ok : CouponTypes.Coupon; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    Debug.print("[Farm72] addCoupon called by: " # caller.toText() # " code=" # input.code);
     CouponLib.createCoupon(coupons, input);
   };
 
   // Alias: createCoupon kept for backward compat
-  public shared ({ caller }) func createCoupon(input : CouponTypes.CouponInput) : async CouponTypes.Coupon {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can create coupons");
+  public shared ({ caller }) func createCoupon(input : CouponTypes.CouponInput) : async { #ok : CouponTypes.Coupon; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
+    };
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
     };
     CouponLib.createCoupon(coupons, input);
   };
 
-  public shared ({ caller }) func updateCoupon(code : Text, input : CouponTypes.CouponInput) : async ?CouponTypes.Coupon {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can update coupons");
+  public shared ({ caller }) func updateCoupon(code : Text, input : CouponTypes.CouponInput) : async { #ok : CouponTypes.Coupon; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    CouponLib.updateCoupon(coupons, code, input);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    switch (CouponLib.updateCoupon(coupons, code, input)) {
+      case null #err("Coupon not found: " # code);
+      case (?c) #ok(c);
+    };
   };
 
-  public shared ({ caller }) func deleteCoupon(code : Text) : async Bool {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can delete coupons");
+  public shared ({ caller }) func deleteCoupon(code : Text) : async { #ok : Bool; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    CouponLib.deleteCoupon(coupons, code);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    Debug.print("[Farm72] deleteCoupon called by: " # caller.toText() # " code=" # code);
+    #ok(CouponLib.deleteCoupon(coupons, code));
   };
 
   // Toggle coupon active/inactive
-  public shared ({ caller }) func toggleCoupon(code : Text) : async ?CouponTypes.Coupon {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can toggle coupons");
+  public shared ({ caller }) func toggleCoupon(code : Text) : async { #ok : CouponTypes.Coupon; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    CouponLib.toggleCoupon(coupons, code);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    switch (CouponLib.toggleCoupon(coupons, code)) {
+      case null #err("Coupon not found: " # code);
+      case (?c) #ok(c);
+    };
   };
 };

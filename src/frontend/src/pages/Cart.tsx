@@ -25,9 +25,10 @@ function buildWhatsAppMessage(
   total: number,
   couponCode?: string,
 ): string {
-  const itemLines = items.map(
-    (i) => `• ${i.name} × ${i.quantity} = ₹${i.price * i.quantity}`,
-  );
+  const itemLines = items.map((i) => {
+    const variantPart = i.variantLabel ? ` (${i.variantLabel})` : "";
+    return `• ${i.name}${variantPart} × ${i.quantity} = ₹${i.price * i.quantity}`;
+  });
   const couponLine = couponCode ? [`Coupon applied: ${couponCode}`] : [];
   const message = [
     "Hello Farm72! I'd like to place an order:",
@@ -163,13 +164,22 @@ export function Cart() {
                   {/* Item details */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-display font-semibold text-foreground truncate">
-                        {item.name}
-                      </h3>
+                      <div className="min-w-0">
+                        <h3 className="font-display font-semibold text-foreground truncate">
+                          {item.name}
+                        </h3>
+                        {item.variantLabel && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {item.variantLabel}
+                          </p>
+                        )}
+                      </div>
                       {/* Remove button */}
                       <button
                         type="button"
-                        onClick={() => removeItem(item.productId)}
+                        onClick={() =>
+                          removeItem(item.productId, item.variantId)
+                        }
                         className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-smooth flex-shrink-0"
                         aria-label={`Remove ${item.name} from cart`}
                         data-ocid={`cart-remove-${item.productId}`}
@@ -188,7 +198,11 @@ export function Cart() {
                         <button
                           type="button"
                           onClick={() =>
-                            updateQuantity(item.productId, item.quantity - 1)
+                            updateQuantity(
+                              item.productId,
+                              item.quantity - 1,
+                              item.variantId,
+                            )
                           }
                           className="px-3 py-1.5 hover:bg-muted transition-smooth text-foreground"
                           aria-label="Decrease quantity"
@@ -204,7 +218,11 @@ export function Cart() {
                           onChange={(e) => {
                             const val = Number.parseInt(e.target.value, 10);
                             if (!Number.isNaN(val) && val > 0) {
-                              updateQuantity(item.productId, val);
+                              updateQuantity(
+                                item.productId,
+                                val,
+                                item.variantId,
+                              );
                             }
                           }}
                           className="w-12 py-1.5 text-sm font-semibold text-center bg-transparent focus:outline-none text-foreground [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -214,7 +232,11 @@ export function Cart() {
                         <button
                           type="button"
                           onClick={() =>
-                            updateQuantity(item.productId, item.quantity + 1)
+                            updateQuantity(
+                              item.productId,
+                              item.quantity + 1,
+                              item.variantId,
+                            )
                           }
                           className="px-3 py-1.5 hover:bg-muted transition-smooth text-foreground"
                           aria-label="Increase quantity"

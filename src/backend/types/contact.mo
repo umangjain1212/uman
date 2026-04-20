@@ -3,5 +3,6 @@ module {
     name : Text;
     email : Text;
     message : Text;
+    timestamp : Int;
   };
 };

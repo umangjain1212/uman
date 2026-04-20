@@ -18,7 +18,7 @@ function useSiteSettings() {
       return actor.getSiteSettings();
     },
     enabled: !!actor && !isFetching,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000, // cache for 60 seconds to avoid re-fetch on every route change
   });
 }
 
@@ -287,8 +287,46 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
+  const { data: settings } = useSiteSettings();
+  const routerState = useRouterState();
+  const currentPath = routerState.location.pathname;
+
+  // Admin pages are never affected by maintenance mode
+  const isAdminRoute = currentPath.startsWith("/admin");
+
+  // Maintenance mode — show full-page notice for public routes only
+  if (settings?.maintenanceMode && !isAdminRoute) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-6">
+            <span className="text-3xl">🔧</span>
+          </div>
+          <h1 className="font-display text-2xl font-bold text-foreground mb-3">
+            Under Maintenance
+          </h1>
+          <p className="text-muted-foreground">
+            We're temporarily down for maintenance. Please check back soon.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Announcement banner — public pages only, not admin */}
+      {!isAdminRoute &&
+        settings?.showAnnouncementBanner &&
+        settings.announcementBannerText && (
+          <div
+            className="py-2 px-4 text-center text-sm font-medium text-white"
+            style={{ backgroundColor: "#1a3a1a" }}
+            data-ocid="announcement-banner"
+          >
+            {settings.announcementBannerText}
+          </div>
+        )}
       <Navbar />
       <main className="flex-1 bg-background">{children}</main>
       <Footer />

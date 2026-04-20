@@ -20,6 +20,7 @@ export interface ContactMessage {
   'name' : string,
   'email' : string,
   'message' : string,
+  'timestamp' : bigint,
 }
 export interface Coupon {
   'expiryDate' : [] | [Timestamp],
@@ -61,6 +62,7 @@ export interface HeroSlide {
   'displayOrder' : bigint,
   'imageUrl' : string,
   'isVisible' : boolean,
+  'highlight' : string,
   'subtitle' : string,
 }
 export interface HeroSlideInput {
@@ -69,6 +71,7 @@ export interface HeroSlideInput {
   'displayOrder' : bigint,
   'imageUrl' : string,
   'isVisible' : boolean,
+  'highlight' : string,
   'subtitle' : string,
 }
 export interface Order {
@@ -195,6 +198,17 @@ export interface TransformationOutput {
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface _ImmutableObjectStorageCreateCertificateResult {
+  'method' : string,
+  'blob_hash' : string,
+}
+export interface _ImmutableObjectStorageRefillInformation {
+  'proposed_top_up_amount' : [] | [bigint],
+}
+export interface _ImmutableObjectStorageRefillResult {
+  'success' : [] | [boolean],
+  'topped_up_amount' : [] | [bigint],
+}
 export interface http_header { 'value' : string, 'name' : string }
 export interface http_request_result {
   'status' : bigint,
@@ -202,70 +216,219 @@ export interface http_request_result {
   'headers' : Array<http_header>,
 }
 export interface _SERVICE {
+  '_immutableObjectStorageBlobsAreLive' : ActorMethod<
+    [Array<Uint8Array>],
+    Array<boolean>
+  >,
+  '_immutableObjectStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
+  '_immutableObjectStorageConfirmBlobDeletion' : ActorMethod<
+    [Array<Uint8Array>],
+    undefined
+  >,
+  '_immutableObjectStorageCreateCertificate' : ActorMethod<
+    [string],
+    _ImmutableObjectStorageCreateCertificateResult
+  >,
+  '_immutableObjectStorageRefillCashier' : ActorMethod<
+    [[] | [_ImmutableObjectStorageRefillInformation]],
+    _ImmutableObjectStorageRefillResult
+  >,
+  '_immutableObjectStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControl' : ActorMethod<[], undefined>,
-  'addCoupon' : ActorMethod<[CouponInput], Coupon>,
-  'addFAQ' : ActorMethod<[FaqItemInput], FaqItem>,
-  'addHeroSlide' : ActorMethod<[HeroSlideInput], HeroSlide>,
-  'addProduct' : ActorMethod<[ProductInput], Product>,
-  'adminLogin' : ActorMethod<
-    [string, string],
-    { 'ok' : string } |
+  'addCoupon' : ActorMethod<
+    [CouponInput],
+    { 'ok' : Coupon } |
       { 'err' : string }
   >,
-  'adminLogout' : ActorMethod<[string], undefined>,
+  'addFAQ' : ActorMethod<
+    [FaqItemInput],
+    { 'ok' : FaqItem } |
+      { 'err' : string }
+  >,
+  'addHeroSlide' : ActorMethod<
+    [HeroSlideInput],
+    { 'ok' : HeroSlide } |
+      { 'err' : string }
+  >,
+  'addProduct' : ActorMethod<
+    [ProductInput],
+    { 'ok' : Product } |
+      { 'err' : string }
+  >,
   'applyCoupon' : ActorMethod<[string], CouponValidation>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'changeAdminPassword' : ActorMethod<
-    [string, string, string],
-    { 'ok' : null } |
-      { 'err' : string }
-  >,
+  'checkIsAdmin' : ActorMethod<[], { 'ok' : null } | { 'err' : string }>,
   'createCheckoutSession' : ActorMethod<
     [Array<ShoppingItem>, string, string],
     string
   >,
-  'createCoupon' : ActorMethod<[CouponInput], Coupon>,
-  'deleteCoupon' : ActorMethod<[string], boolean>,
-  'deleteFAQ' : ActorMethod<[string], boolean>,
-  'deleteFaqItem' : ActorMethod<[string], boolean>,
-  'deleteHeroSlide' : ActorMethod<[string], boolean>,
-  'deleteProduct' : ActorMethod<[string], boolean>,
-  'getAdminCoupons' : ActorMethod<[], Array<Coupon>>,
-  'getAdminOrders' : ActorMethod<[], Array<Order>>,
-  'getAdminProducts' : ActorMethod<[], Array<Product>>,
-  'getAnalyticsSummary' : ActorMethod<[], AnalyticsSummary>,
+  'createCoupon' : ActorMethod<
+    [CouponInput],
+    { 'ok' : Coupon } |
+      { 'err' : string }
+  >,
+  'deleteCoupon' : ActorMethod<
+    [string],
+    { 'ok' : boolean } |
+      { 'err' : string }
+  >,
+  'deleteFAQ' : ActorMethod<[string], { 'ok' : boolean } | { 'err' : string }>,
+  'deleteFaqItem' : ActorMethod<
+    [string],
+    { 'ok' : boolean } |
+      { 'err' : string }
+  >,
+  'deleteHeroSlide' : ActorMethod<
+    [string],
+    { 'ok' : boolean } |
+      { 'err' : string }
+  >,
+  'deleteProduct' : ActorMethod<
+    [string],
+    { 'ok' : boolean } |
+      { 'err' : string }
+  >,
+  'getAdminCoupons' : ActorMethod<
+    [],
+    { 'ok' : Array<Coupon> } |
+      { 'err' : string }
+  >,
+  'getAdminOrders' : ActorMethod<
+    [],
+    { 'ok' : Array<Order> } |
+      { 'err' : string }
+  >,
+  'getAdminPrincipal' : ActorMethod<
+    [],
+    { 'ok' : [] | [string] } |
+      { 'err' : string }
+  >,
+  'getAdminProducts' : ActorMethod<
+    [],
+    { 'ok' : Array<Product> } |
+      { 'err' : string }
+  >,
+  'getAnalyticsSummary' : ActorMethod<
+    [],
+    { 'ok' : AnalyticsSummary } |
+      { 'err' : string }
+  >,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
-  'getCoupons' : ActorMethod<[], Array<Coupon>>,
-  'getDashboardStats' : ActorMethod<[], AnalyticsSummary>,
+  'getContactMessages' : ActorMethod<
+    [],
+    { 'ok' : Array<ContactMessage> } |
+      { 'err' : string }
+  >,
+  'getCoupons' : ActorMethod<[], { 'ok' : Array<Coupon> } | { 'err' : string }>,
+  'getDashboardStats' : ActorMethod<
+    [],
+    { 'ok' : AnalyticsSummary } |
+      { 'err' : string }
+  >,
   'getFAQs' : ActorMethod<[], Array<FaqItem>>,
   'getFaqItems' : ActorMethod<[], Array<FaqItem>>,
   'getHeroSlides' : ActorMethod<[], Array<HeroSlide>>,
-  'getOrder' : ActorMethod<[string], [] | [Order]>,
-  'getOrders' : ActorMethod<[], Array<Order>>,
+  'getImageUploadUrl' : ActorMethod<
+    [string, string],
+    { 'ok' : { 'publicUrl' : string, 'uploadUrl' : string } } |
+      { 'err' : string }
+  >,
+  'getOrder' : ActorMethod<
+    [string],
+    { 'ok' : [] | [Order] } |
+      { 'err' : string }
+  >,
+  'getOrders' : ActorMethod<[], { 'ok' : Array<Order> } | { 'err' : string }>,
   'getProduct' : ActorMethod<[string], [] | [Product]>,
   'getProducts' : ActorMethod<[], Array<Product>>,
-  'getRecentOrders' : ActorMethod<[bigint], Array<Order>>,
+  'getRecentOrders' : ActorMethod<
+    [bigint],
+    { 'ok' : Array<Order> } |
+      { 'err' : string }
+  >,
   'getSiteSettings' : ActorMethod<[], SiteSettings>,
   'getStripeSessionStatus' : ActorMethod<[string], StripeSessionStatus>,
-  'getTopProducts' : ActorMethod<[bigint], Array<TopProduct>>,
+  'getTopProducts' : ActorMethod<
+    [bigint],
+    { 'ok' : Array<TopProduct> } |
+      { 'err' : string }
+  >,
+  'hasAdmin' : ActorMethod<[], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'isStripeConfigured' : ActorMethod<[], boolean>,
+  'setAdminPrincipal' : ActorMethod<[], { 'ok' : string } | { 'err' : string }>,
+  'setAdminPrincipalExplicit' : ActorMethod<
+    [Principal],
+    { 'ok' : null } |
+      { 'err' : string }
+  >,
   'setStripeConfiguration' : ActorMethod<[StripeConfiguration], undefined>,
-  'storeOrder' : ActorMethod<[OrderInput], Order>,
-  'submitContact' : ActorMethod<[ContactMessage], boolean>,
-  'toggleCoupon' : ActorMethod<[string], [] | [Coupon]>,
-  'toggleProductVisibility' : ActorMethod<[string], [] | [Product]>,
+  'storeOrder' : ActorMethod<
+    [OrderInput],
+    { 'ok' : Order } |
+      { 'err' : string }
+  >,
+  'submitContact' : ActorMethod<
+    [string, string, string],
+    { 'ok' : ContactMessage } |
+      { 'err' : string }
+  >,
+  'toggleCoupon' : ActorMethod<
+    [string],
+    { 'ok' : Coupon } |
+      { 'err' : string }
+  >,
+  'toggleProductVisibility' : ActorMethod<
+    [string],
+    { 'ok' : Product } |
+      { 'err' : string }
+  >,
   'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
-  'updateCoupon' : ActorMethod<[string, CouponInput], [] | [Coupon]>,
-  'updateFAQ' : ActorMethod<[string, FaqItemInput], [] | [FaqItem]>,
-  'updateHeroSlide' : ActorMethod<[string, HeroSlideInput], [] | [HeroSlide]>,
-  'updateOrderStatus' : ActorMethod<[string, OrderStatus], [] | [Order]>,
-  'updateProduct' : ActorMethod<[string, ProductInput], [] | [Product]>,
-  'updateSiteSettings' : ActorMethod<[SiteSettings], SiteSettings>,
-  'updateSiteSettingsPartial' : ActorMethod<[SiteSettingsInput], SiteSettings>,
-  'upsertFaqItem' : ActorMethod<[FaqItemInput], FaqItem>,
-  'upsertHeroSlide' : ActorMethod<[HeroSlideInput], HeroSlide>,
-  'validateAdminSession' : ActorMethod<[string], boolean>,
+  'updateCoupon' : ActorMethod<
+    [string, CouponInput],
+    { 'ok' : Coupon } |
+      { 'err' : string }
+  >,
+  'updateFAQ' : ActorMethod<
+    [string, FaqItemInput],
+    { 'ok' : FaqItem } |
+      { 'err' : string }
+  >,
+  'updateHeroSlide' : ActorMethod<
+    [string, HeroSlideInput],
+    { 'ok' : HeroSlide } |
+      { 'err' : string }
+  >,
+  'updateOrderStatus' : ActorMethod<
+    [string, OrderStatus],
+    { 'ok' : Order } |
+      { 'err' : string }
+  >,
+  'updateProduct' : ActorMethod<
+    [string, ProductInput],
+    { 'ok' : Product } |
+      { 'err' : string }
+  >,
+  'updateSiteSettings' : ActorMethod<
+    [SiteSettings],
+    { 'ok' : SiteSettings } |
+      { 'err' : string }
+  >,
+  'updateSiteSettingsPartial' : ActorMethod<
+    [SiteSettingsInput],
+    { 'ok' : SiteSettings } |
+      { 'err' : string }
+  >,
+  'upsertFaqItem' : ActorMethod<
+    [FaqItemInput],
+    { 'ok' : FaqItem } |
+      { 'err' : string }
+  >,
+  'upsertHeroSlide' : ActorMethod<
+    [HeroSlideInput],
+    { 'ok' : HeroSlide } |
+      { 'err' : string }
+  >,
   'validateCoupon' : ActorMethod<[string], CouponValidation>,
 }
 export declare const idlService: IDL.ServiceClass;

@@ -14,7 +14,15 @@ declare global {
   }
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30 * 1000, // 30 seconds — don't re-fetch on every navigation
+      gcTime: 5 * 60 * 1000, // 5 minutes — keep unused data in cache
+      retry: 1, // only retry once on failure
+    },
+  },
+});
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>

@@ -3,6 +3,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAdmin } from "@/hooks/useAdmin";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
+  BarChart2,
   BarChart3,
   Bell,
   ChevronRight,
@@ -23,6 +24,7 @@ const navItems = [
   { to: "/admin/products", label: "Products", icon: Package },
   { to: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { to: "/admin/coupons", label: "Coupons", icon: Percent },
+  { to: "/admin/analytics", label: "Analytics", icon: BarChart2 },
   { to: "/admin/content", label: "Content", icon: FileText },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
@@ -151,8 +153,14 @@ export function AdminLayout({ children, title, breadcrumb }: AdminLayoutProps) {
     );
   }
 
+  // While redirect is in-flight (navigate is async), show spinner instead of null
+  // to prevent any flash of admin content.
   if (!isAuthenticated) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (

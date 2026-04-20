@@ -1,7 +1,13 @@
+import { createActor } from "@/backend";
+import type { Product as BackendProduct, HeroSlide } from "@/backend.d";
 import { ProductCard } from "@/components/ProductCard";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
-import { products } from "@/data/products";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Product } from "@/data/products";
+import { mapBackendProduct } from "@/lib/productMapper";
+import { useActor } from "@caffeineai/core-infrastructure";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -15,43 +21,13 @@ import {
 import { motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const heroSlides = [
-  {
-    imageUrl: "/assets/images/hero1.png",
-    alt: "Farm72 cold pressed oil bottles",
-    title: "Pure Cold Pressed Oils",
-    subtitle: "Healthy Living Starts Here",
-    highlight: "Pressed",
-  },
-  {
-    imageUrl: "/assets/images/hero2.png",
-    alt: "Farm72 product lineup — Mustard, Coconut, Sesame oils",
-    title: "From Pure Seeds",
-    subtitle: "Nothing Added. Nothing Removed",
-    highlight: "Pure",
-  },
-  {
-    imageUrl: "/assets/images/hero3.png",
-    alt: "Mustard field at sunrise with Farm72 bottle",
-    title: "Wood Pressed Tradition",
-    subtitle: "Slow. Natural. Powerful",
-    highlight: "Tradition",
-  },
-  {
-    imageUrl: "/assets/images/hero4.jpg",
-    alt: "Farm72 natural organic ingredients",
-    title: "Himalayan Buransh Juice",
-    subtitle: "Pure. Refreshing. Naturally Powerful",
-    highlight: "Buransh",
-  },
-  {
-    imageUrl: "/assets/images/hero5.jpg",
-    alt: "Fresh coconuts with palm leaves",
-    title: "Crafted for Purity",
-    subtitle: "Premium Quality Oils",
-    highlight: "Purity",
-  },
-];
+interface SlideData {
+  imageUrl: string;
+  alt: string;
+  title: string;
+  subtitle: string;
+  highlight: string;
+}
 
 const benefits = [
   {
@@ -74,31 +50,129 @@ const benefits = [
   },
 ];
 
+// Emergency fallback — only used if backend is completely unreachable AND returns empty
+const FALLBACK_SLIDES: SlideData[] = [
+  {
+    imageUrl: "/assets/images/hero1.png",
+    alt: "Farm72 cold pressed oil bottles",
+    title: "Pure Cold Pressed Oils",
+    subtitle: "Healthy Living Starts Here",
+    highlight: "Pressed",
+  },
+  {
+    imageUrl: "/assets/images/hero2.png",
+    alt: "Mustard field at sunrise with Farm72 bottle",
+    title: "Wood Pressed Tradition",
+    subtitle: "Slow. Natural. Powerful",
+    highlight: "Tradition",
+  },
+  {
+    imageUrl: "/assets/images/hero3.png",
+    alt: "Farm72 product lineup",
+    title: "From Pure Seeds",
+    subtitle: "Nothing Added. Nothing Removed",
+    highlight: "Pure",
+  },
+  {
+    imageUrl: "/assets/images/hero4.jpg",
+    alt: "Himalayan Buransh Juice",
+    title: "Himalayan Buransh Juice",
+    subtitle: "Pure. Refreshing. Naturally Powerful",
+    highlight: "Buransh",
+  },
+  {
+    imageUrl: "/assets/images/hero5.jpg",
+    alt: "Fresh coconuts with palm leaves",
+    title: "Crafted for Purity",
+    subtitle: "Premium Quality Oils",
+    highlight: "Purity",
+  },
+  {
+    imageUrl: "/assets/images/hero7.jpg",
+    alt: "Farm72 Naturals — Straight from Nature to Your Kitchen",
+    title: "Farm72 Naturals",
+    subtitle: "Straight from Nature to Your Kitchen",
+    highlight: "Naturals",
+  },
+];
+
+function mapBackendSlide(s: HeroSlide): SlideData {
+  // highlight field exists on HeroSlide — use it directly;
+  // derive from title only if it is empty/missing
+  const highlight =
+    s.highlight && s.highlight.trim().length > 0
+      ? s.highlight.trim()
+      : (() => {
+          const words = s.title.split(/\s+/);
+          return (
+            words.find((w) => w.length >= 4 && /^[A-Z]/.test(w)) ??
+            words[0] ??
+            ""
+          );
+        })();
+  return {
+    imageUrl: s.imageUrl,
+    alt: s.title,
+    title: s.title,
+    subtitle: s.subtitle,
+    highlight,
+  };
+}
+
 function HeroCarousel() {
+  const { actor, isFetching: actorFetching } = useActor(createActor);
+
+  // Start with null — no slides and not ready — show skeleton until backend responds.
+  const [slides, setSlides] = useState<SlideData[] | null>(null);
   const [current, setCurrent] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [paused, setPaused] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Track whether we've already fetched to avoid double-fetch
+  const fetchedRef = useRef(false);
+
+  useEffect(() => {
+    // Wait until actor is available and not in the middle of initialising
+    if (actorFetching || !actor || fetchedRef.current) return;
+    fetchedRef.current = true;
+
+    actor
+      .getHeroSlides()
+      .then((backendSlides) => {
+        const visible = backendSlides
+          .filter((s) => s.isVisible)
+          .sort((a, b) => Number(a.displayOrder) - Number(b.displayOrder));
+        setSlides(
+          visible.length > 0 ? visible.map(mapBackendSlide) : FALLBACK_SLIDES,
+        );
+      })
+      .catch(() => {
+        setSlides(FALLBACK_SLIDES);
+      });
+  }, [actor, actorFetching]);
+
+  const activeSlides = slides ?? [];
+  const slidesReady = slides !== null;
 
   const goTo = useCallback(
     (index: number) => {
-      if (isAnimating) return;
+      if (isAnimating || activeSlides.length === 0) return;
       setIsAnimating(true);
-      setCurrent((index + heroSlides.length) % heroSlides.length);
+      setCurrent((index + activeSlides.length) % activeSlides.length);
       setTimeout(() => setIsAnimating(false), 700);
     },
-    [isAnimating],
+    [isAnimating, activeSlides.length],
   );
 
   useEffect(() => {
-    if (paused) return;
+    if (paused || activeSlides.length === 0) return;
     timerRef.current = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % heroSlides.length);
+      setCurrent((prev) => (prev + 1) % activeSlides.length);
     }, 3500);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [paused]);
+  }, [paused, activeSlides.length]);
 
   return (
     <div
@@ -106,12 +180,30 @@ function HeroCarousel() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* Slides */}
-      {heroSlides.map((slide, i) => (
+      {/* Loading skeleton — shown until backend responds; prevents hardcoded→backend flash */}
+      {!slidesReady && (
+        <div className="absolute inset-0 bg-foreground/10 animate-pulse z-50 flex items-center justify-center">
+          <div className="w-full px-8 md:px-16 lg:px-24">
+            <div className="max-w-sm md:max-w-md lg:max-w-lg space-y-4 bg-black/10 backdrop-blur-sm border border-white/15 rounded-2xl p-8 md:p-10">
+              <div className="h-3 w-24 rounded-full bg-white/20" />
+              <div className="h-12 w-3/4 rounded-lg bg-white/20" />
+              <div className="h-3 w-16 rounded-full bg-amber-400/30" />
+              <div className="h-4 w-2/3 rounded-lg bg-white/15" />
+              <div className="flex gap-3 pt-2">
+                <div className="h-9 w-28 rounded-full bg-white/25" />
+                <div className="h-9 w-28 rounded-full bg-white/10" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Slide backgrounds */}
+      {activeSlides.map((slide, slideIdx) => (
         <div
-          key={slide.imageUrl}
+          key={`slide-bg-${slide.imageUrl}`}
           className={`absolute inset-0 transition-opacity duration-700 ${
-            i === current ? "opacity-100 z-10" : "opacity-0 z-0"
+            slideIdx === current ? "opacity-100 z-10" : "opacity-0 z-0"
           }`}
           style={{
             backgroundImage: `url(${slide.imageUrl})`,
@@ -121,8 +213,7 @@ function HeroCarousel() {
           role="img"
           aria-label={slide.alt}
         >
-          {/* LCP preload hint for first slide */}
-          {i === 0 && (
+          {slideIdx === 0 && (
             <img
               src={slide.imageUrl}
               alt=""
@@ -138,79 +229,91 @@ function HeroCarousel() {
       {/* Dark overlay */}
       <div className="absolute inset-0 hero-overlay z-20" />
 
-      {/* Left-aligned overlay content */}
-      <div className="absolute inset-0 z-30 flex items-center">
-        <div className="w-full px-8 md:px-16 lg:px-24">
-          <motion.div
-            key={current}
-            initial={{ opacity: 0, x: -32 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.65, ease: [0.4, 0, 0.2, 1] }}
-            className="max-w-sm md:max-w-md lg:max-w-lg bg-black/10 backdrop-blur-sm border border-white/15 rounded-2xl p-8 md:p-10 shadow-xl"
-          >
-            {/* Eyebrow label */}
-            <p className="text-amber-400/80 text-xs uppercase tracking-widest font-medium mb-4 flex items-center gap-2">
-              <Sprout className="w-3.5 h-3.5" />
-              Farm72 · Pure &amp; Natural
-            </p>
-
-            {/* Title with highlighted word */}
-            <h1 className="font-['Playfair_Display'] text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight">
+      {/* Left-aligned overlay content — only rendered when a valid slide is available */}
+      {activeSlides.length > 0 &&
+        activeSlides[Math.min(current, activeSlides.length - 1)] && (
+          <div className="absolute inset-0 z-30 flex items-center">
+            <div className="w-full px-8 md:px-16 lg:px-24">
               {(() => {
-                const slide = heroSlides[current];
-                const parts = slide.title.split(slide.highlight);
+                const slide =
+                  activeSlides[Math.min(current, activeSlides.length - 1)];
                 return (
-                  <>
-                    {parts[0]}
-                    <span style={{ color: "#D4A847" }}>{slide.highlight}</span>
-                    {parts[1]}
-                  </>
+                  <motion.div
+                    key={current}
+                    initial={{ opacity: 0, x: -32 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.65, ease: [0.4, 0, 0.2, 1] }}
+                    className="max-w-sm md:max-w-md lg:max-w-lg bg-black/10 backdrop-blur-sm border border-white/15 rounded-2xl p-8 md:p-10 shadow-xl"
+                  >
+                    {/* Eyebrow label */}
+                    <p className="text-amber-400/80 text-xs uppercase tracking-widest font-medium mb-4 flex items-center gap-2">
+                      <Sprout className="w-3.5 h-3.5" />
+                      Farm72 · Pure &amp; Natural
+                    </p>
+
+                    {/* Title with highlighted word */}
+                    <h1 className="font-['Playfair_Display'] text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight">
+                      {slide.highlight
+                        ? (() => {
+                            const parts = slide.title.split(slide.highlight);
+                            return (
+                              <>
+                                {parts[0]}
+                                <span style={{ color: "#D4A847" }}>
+                                  {slide.highlight}
+                                </span>
+                                {parts[1]}
+                              </>
+                            );
+                          })()
+                        : slide.title}
+                    </h1>
+
+                    {/* Decorative divider + subtitle */}
+                    <div className="mt-4 mb-6">
+                      <div className="w-12 h-px bg-amber-400 mb-3" />
+                      <p className="text-white/90 text-xs sm:text-sm uppercase tracking-widest font-medium">
+                        {slide.subtitle ?? ""}
+                      </p>
+                    </div>
+
+                    {/* CTA Buttons */}
+                    <div className="flex gap-3 flex-wrap">
+                      <Link to="/shop">
+                        <button
+                          type="button"
+                          className="bg-white text-green-900 font-bold text-sm px-6 py-2.5 rounded-full hover:bg-amber-400 hover:text-white transition-all duration-200"
+                          data-ocid="hero-shop-now"
+                        >
+                          SHOP NOW →
+                        </button>
+                      </Link>
+                      <Link to="/about">
+                        <button
+                          type="button"
+                          className="border border-white/60 text-white text-sm font-medium px-6 py-2.5 rounded-full hover:bg-white/20 transition-all duration-200"
+                        >
+                          OUR STORY
+                        </button>
+                      </Link>
+                    </div>
+                  </motion.div>
                 );
               })()}
-            </h1>
-
-            {/* Decorative divider + subtitle */}
-            <div className="mt-4 mb-6">
-              <div className="w-12 h-px bg-amber-400 mb-3" />
-              <p className="text-white/90 text-xs sm:text-sm uppercase tracking-widest font-medium">
-                {heroSlides[current].subtitle}
-              </p>
             </div>
-
-            {/* CTA Buttons */}
-            <div className="flex gap-3 flex-wrap">
-              <Link to="/shop">
-                <button
-                  type="button"
-                  className="bg-white text-green-900 font-bold text-sm px-6 py-2.5 rounded-full hover:bg-amber-400 hover:text-white transition-all duration-200"
-                  data-ocid="hero-shop-now"
-                >
-                  SHOP NOW →
-                </button>
-              </Link>
-              <Link to="/about">
-                <button
-                  type="button"
-                  className="border border-white/60 text-white text-sm font-medium px-6 py-2.5 rounded-full hover:bg-white/20 transition-all duration-200"
-                >
-                  OUR STORY
-                </button>
-              </Link>
-            </div>
-          </motion.div>
-        </div>
-      </div>
+          </div>
+        )}
 
       {/* Slide indicator dots */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-40">
-        {heroSlides.map((slide, i) => (
+        {activeSlides.map((slide, dotIdx) => (
           <button
-            key={slide.imageUrl}
+            key={`dot-${slide.imageUrl}`}
             type="button"
-            onClick={() => goTo(i)}
-            aria-label={`Go to slide ${i + 1}`}
+            onClick={() => goTo(dotIdx)}
+            aria-label={`Go to slide ${dotIdx + 1}`}
             className={`h-1.5 rounded-full transition-smooth ${
-              i === current
+              dotIdx === current
                 ? "bg-primary-foreground w-8"
                 : "bg-primary-foreground/40 w-3 hover:bg-primary-foreground/60"
             }`}
@@ -237,6 +340,69 @@ function HeroCarousel() {
       >
         <ChevronRight className="w-5 h-5" />
       </button>
+    </div>
+  );
+}
+
+// Skeleton for featured product cards while loading
+function ProductCardSkeleton() {
+  return (
+    <div className="bg-card rounded-2xl overflow-hidden shadow-card">
+      <Skeleton className="aspect-[4/3] w-full" />
+      <div className="p-5 space-y-3">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-5 w-3/4" />
+        <div className="flex gap-2">
+          <Skeleton className="h-10 w-28 rounded-lg" />
+          <Skeleton className="h-10 w-28 rounded-lg" />
+        </div>
+        <Skeleton className="h-9 w-full rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
+function FeaturedProducts() {
+  const { actor, isFetching: actorFetching } = useActor(createActor);
+
+  const { data: backendProducts, isLoading } = useQuery<Product[]>({
+    queryKey: ["products-home"],
+    queryFn: async () => {
+      if (!actor) return [];
+      const raw = await actor.getProducts();
+      return raw
+        .filter((p: BackendProduct) => p.isVisible)
+        .sort(
+          (a: BackendProduct, b: BackendProduct) =>
+            Number(a.displayOrder) - Number(b.displayOrder),
+        )
+        .map(mapBackendProduct);
+    },
+    enabled: !!actor && !actorFetching,
+    staleTime: 60_000,
+  });
+
+  const products = backendProducts ?? [];
+  const showSkeletons = isLoading || actorFetching;
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
+      {showSkeletons
+        ? Array.from({ length: 6 }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: skeleton placeholders
+            <ProductCardSkeleton key={i} />
+          ))
+        : products.map((product, i) => (
+            <motion.div
+              key={product.id}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08, duration: 0.4 }}
+            >
+              <ProductCard product={product} />
+            </motion.div>
+          ))}
     </div>
   );
 }
@@ -270,19 +436,7 @@ export function Home() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
-            {products.map((product, i) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08, duration: 0.4 }}
-              >
-                <ProductCard product={product} />
-              </motion.div>
-            ))}
-          </div>
+          <FeaturedProducts />
 
           <div className="text-center mt-10">
             <Link to="/shop">

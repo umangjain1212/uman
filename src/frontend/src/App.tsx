@@ -1,12 +1,14 @@
 import { Layout } from "@/components/Layout";
+import { useAdmin } from "@/hooks/useAdmin";
 import {
   Outlet,
   RouterProvider,
   createRootRoute,
   createRoute,
   createRouter,
+  useNavigate,
 } from "@tanstack/react-router";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "sonner";
 
 // ── Public pages ─────────────────────────────────────────────────────────────
@@ -79,8 +81,73 @@ const AdminSettings = lazy(() =>
     default: m.AdminSettings,
   })),
 );
+const AdminAnalytics = lazy(() =>
+  import("@/pages/admin/AdminAnalytics").then((m) => ({
+    default: m.AdminAnalytics,
+  })),
+);
 
-// ── Loaders ───────────────────────────────────────────────────────────────────
+// ── Auth guard ────────────────────────────────────────────────────────────────
+// Wraps all /admin/* routes except /admin/login.
+// Rules:
+//   1. While isLoading=true  → show spinner, render NOTHING else
+//   2. When !isLoading && !isAuthenticated → redirect to /admin/login
+//   3. Only render children when isAuthenticated=true AND isLoading=false
+function AdminAuthGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAdmin();
+  const navigate = useNavigate();
+
+  // Redirect synchronously (in effect) the moment auth state is resolved
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate({ to: "/admin/login", replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+
+  // Always show spinner until auth is fully resolved
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Auth resolved but not authenticated — show nothing while redirect fires
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Authenticated — render protected content
+  return <>{children}</>;
+}
+
+// Admin root redirect — spinner while auth is checked,
+// then routes to /admin/dashboard (authenticated) or /admin/login (not).
+function AdminIndexRedirect() {
+  const { isAuthenticated, isLoading } = useAdmin();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (isAuthenticated) {
+      navigate({ to: "/admin/dashboard", replace: true });
+    } else {
+      navigate({ to: "/admin/login", replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-muted/30">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
+
 function PageLoader() {
   return (
     <div className="flex-1 flex items-center justify-center min-h-[40vh]">
@@ -98,7 +165,6 @@ function AdminLoader() {
 }
 
 // ── Route tree ────────────────────────────────────────────────────────────────
-// Public root — wrapped in Layout (Navbar + Footer)
 const rootRoute = createRootRoute({
   component: () => (
     <>
@@ -188,58 +254,101 @@ const buranshRoute = createRoute({
   component: BuranshJuice,
 });
 
-// Admin routes (no Layout wrapper)
+// Admin login — no auth guard
 const adminLoginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/login",
   component: AdminLogin,
 });
+
+// Protected admin routes — each wrapped in AdminAuthGuard
 const adminDashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/dashboard",
-  component: AdminDashboard,
+  component: () => (
+    <AdminAuthGuard>
+      <AdminDashboard />
+    </AdminAuthGuard>
+  ),
 });
 const adminProductsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/products",
-  component: AdminProducts,
+  component: () => (
+    <AdminAuthGuard>
+      <AdminProducts />
+    </AdminAuthGuard>
+  ),
 });
 const adminProductNewRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/products/new",
-  component: AdminProductForm,
+  component: () => (
+    <AdminAuthGuard>
+      <AdminProductForm />
+    </AdminAuthGuard>
+  ),
 });
 const adminProductEditRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/products/$id/edit",
-  component: AdminProductForm,
+  component: () => (
+    <AdminAuthGuard>
+      <AdminProductForm />
+    </AdminAuthGuard>
+  ),
 });
 const adminOrdersRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/orders",
-  component: AdminOrders,
+  component: () => (
+    <AdminAuthGuard>
+      <AdminOrders />
+    </AdminAuthGuard>
+  ),
 });
 const adminCouponsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/coupons",
-  component: AdminCoupons,
+  component: () => (
+    <AdminAuthGuard>
+      <AdminCoupons />
+    </AdminAuthGuard>
+  ),
 });
 const adminContentRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/content",
-  component: AdminContent,
+  component: () => (
+    <AdminAuthGuard>
+      <AdminContent />
+    </AdminAuthGuard>
+  ),
 });
 const adminSettingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin/settings",
-  component: AdminSettings,
+  component: () => (
+    <AdminAuthGuard>
+      <AdminSettings />
+    </AdminAuthGuard>
+  ),
+});
+const adminAnalyticsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/analytics",
+  component: () => (
+    <AdminAuthGuard>
+      <AdminAnalytics />
+    </AdminAuthGuard>
+  ),
 });
 
-// Redirect /admin → /admin/dashboard
+// /admin → redirect based on auth state
 const adminIndexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin",
-  component: AdminDashboard,
+  component: AdminIndexRedirect,
 });
 
 const routeTree = rootRoute.addChildren([
@@ -266,6 +375,7 @@ const routeTree = rootRoute.addChildren([
   adminCouponsRoute,
   adminContentRoute,
   adminSettingsRoute,
+  adminAnalyticsRoute,
 ]);
 
 const router = createRouter({ routeTree });

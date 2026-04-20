@@ -8,6 +8,17 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const _ImmutableObjectStorageCreateCertificateResult = IDL.Record({
+  'method' : IDL.Text,
+  'blob_hash' : IDL.Text,
+});
+export const _ImmutableObjectStorageRefillInformation = IDL.Record({
+  'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+});
+export const _ImmutableObjectStorageRefillResult = IDL.Record({
+  'success' : IDL.Opt(IDL.Bool),
+  'topped_up_amount' : IDL.Opt(IDL.Nat),
+});
 export const Timestamp = IDL.Int;
 export const CouponInput = IDL.Record({
   'expiryDate' : IDL.Opt(Timestamp),
@@ -44,6 +55,7 @@ export const HeroSlideInput = IDL.Record({
   'displayOrder' : IDL.Nat,
   'imageUrl' : IDL.Text,
   'isVisible' : IDL.Bool,
+  'highlight' : IDL.Text,
   'subtitle' : IDL.Text,
 });
 export const HeroSlide = IDL.Record({
@@ -52,6 +64,7 @@ export const HeroSlide = IDL.Record({
   'displayOrder' : IDL.Nat,
   'imageUrl' : IDL.Text,
   'isVisible' : IDL.Bool,
+  'highlight' : IDL.Text,
   'subtitle' : IDL.Text,
 });
 export const ProductVariant = IDL.Record({
@@ -144,6 +157,12 @@ export const AnalyticsSummary = IDL.Record({
   'totalRevenue' : IDL.Nat,
   'deliveredOrders' : IDL.Nat,
 });
+export const ContactMessage = IDL.Record({
+  'name' : IDL.Text,
+  'email' : IDL.Text,
+  'message' : IDL.Text,
+  'timestamp' : IDL.Int,
+});
 export const SiteSettings = IDL.Record({
   'announcementBannerText' : IDL.Text,
   'whatsappOrderEnabled' : IDL.Bool,
@@ -180,11 +199,6 @@ export const OrderInput = IDL.Record({
   'phone' : IDL.Text,
   'items' : IDL.Vec(OrderItem),
 });
-export const ContactMessage = IDL.Record({
-  'name' : IDL.Text,
-  'email' : IDL.Text,
-  'message' : IDL.Text,
-});
 export const http_header = IDL.Record({
   'value' : IDL.Text,
   'name' : IDL.Text,
@@ -215,21 +229,57 @@ export const SiteSettingsInput = IDL.Record({
 });
 
 export const idlService = IDL.Service({
-  '_initializeAccessControl' : IDL.Func([], [], []),
-  'addCoupon' : IDL.Func([CouponInput], [Coupon], []),
-  'addFAQ' : IDL.Func([FaqItemInput], [FaqItem], []),
-  'addHeroSlide' : IDL.Func([HeroSlideInput], [HeroSlide], []),
-  'addProduct' : IDL.Func([ProductInput], [Product], []),
-  'adminLogin' : IDL.Func(
-      [IDL.Text, IDL.Text],
-      [IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text })],
+  '_immutableObjectStorageBlobsAreLive' : IDL.Func(
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [IDL.Vec(IDL.Bool)],
+      ['query'],
+    ),
+  '_immutableObjectStorageBlobsToDelete' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      ['query'],
+    ),
+  '_immutableObjectStorageConfirmBlobDeletion' : IDL.Func(
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [],
       [],
     ),
-  'adminLogout' : IDL.Func([IDL.Text], [], []),
+  '_immutableObjectStorageCreateCertificate' : IDL.Func(
+      [IDL.Text],
+      [_ImmutableObjectStorageCreateCertificateResult],
+      [],
+    ),
+  '_immutableObjectStorageRefillCashier' : IDL.Func(
+      [IDL.Opt(_ImmutableObjectStorageRefillInformation)],
+      [_ImmutableObjectStorageRefillResult],
+      [],
+    ),
+  '_immutableObjectStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
+  '_initializeAccessControl' : IDL.Func([], [], []),
+  'addCoupon' : IDL.Func(
+      [CouponInput],
+      [IDL.Variant({ 'ok' : Coupon, 'err' : IDL.Text })],
+      [],
+    ),
+  'addFAQ' : IDL.Func(
+      [FaqItemInput],
+      [IDL.Variant({ 'ok' : FaqItem, 'err' : IDL.Text })],
+      [],
+    ),
+  'addHeroSlide' : IDL.Func(
+      [HeroSlideInput],
+      [IDL.Variant({ 'ok' : HeroSlide, 'err' : IDL.Text })],
+      [],
+    ),
+  'addProduct' : IDL.Func(
+      [ProductInput],
+      [IDL.Variant({ 'ok' : Product, 'err' : IDL.Text })],
+      [],
+    ),
   'applyCoupon' : IDL.Func([IDL.Text], [CouponValidation], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'changeAdminPassword' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Text],
+  'checkIsAdmin' : IDL.Func(
+      [],
       [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
       [],
     ),
@@ -238,66 +288,215 @@ export const idlService = IDL.Service({
       [IDL.Text],
       [],
     ),
-  'createCoupon' : IDL.Func([CouponInput], [Coupon], []),
-  'deleteCoupon' : IDL.Func([IDL.Text], [IDL.Bool], []),
-  'deleteFAQ' : IDL.Func([IDL.Text], [IDL.Bool], []),
-  'deleteFaqItem' : IDL.Func([IDL.Text], [IDL.Bool], []),
-  'deleteHeroSlide' : IDL.Func([IDL.Text], [IDL.Bool], []),
-  'deleteProduct' : IDL.Func([IDL.Text], [IDL.Bool], []),
-  'getAdminCoupons' : IDL.Func([], [IDL.Vec(Coupon)], []),
-  'getAdminOrders' : IDL.Func([], [IDL.Vec(Order)], []),
-  'getAdminProducts' : IDL.Func([], [IDL.Vec(Product)], []),
-  'getAnalyticsSummary' : IDL.Func([], [AnalyticsSummary], []),
+  'createCoupon' : IDL.Func(
+      [CouponInput],
+      [IDL.Variant({ 'ok' : Coupon, 'err' : IDL.Text })],
+      [],
+    ),
+  'deleteCoupon' : IDL.Func(
+      [IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Bool, 'err' : IDL.Text })],
+      [],
+    ),
+  'deleteFAQ' : IDL.Func(
+      [IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Bool, 'err' : IDL.Text })],
+      [],
+    ),
+  'deleteFaqItem' : IDL.Func(
+      [IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Bool, 'err' : IDL.Text })],
+      [],
+    ),
+  'deleteHeroSlide' : IDL.Func(
+      [IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Bool, 'err' : IDL.Text })],
+      [],
+    ),
+  'deleteProduct' : IDL.Func(
+      [IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Bool, 'err' : IDL.Text })],
+      [],
+    ),
+  'getAdminCoupons' : IDL.Func(
+      [],
+      [IDL.Variant({ 'ok' : IDL.Vec(Coupon), 'err' : IDL.Text })],
+      [],
+    ),
+  'getAdminOrders' : IDL.Func(
+      [],
+      [IDL.Variant({ 'ok' : IDL.Vec(Order), 'err' : IDL.Text })],
+      [],
+    ),
+  'getAdminPrincipal' : IDL.Func(
+      [],
+      [IDL.Variant({ 'ok' : IDL.Opt(IDL.Text), 'err' : IDL.Text })],
+      [],
+    ),
+  'getAdminProducts' : IDL.Func(
+      [],
+      [IDL.Variant({ 'ok' : IDL.Vec(Product), 'err' : IDL.Text })],
+      [],
+    ),
+  'getAnalyticsSummary' : IDL.Func(
+      [],
+      [IDL.Variant({ 'ok' : AnalyticsSummary, 'err' : IDL.Text })],
+      [],
+    ),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-  'getCoupons' : IDL.Func([], [IDL.Vec(Coupon)], []),
-  'getDashboardStats' : IDL.Func([], [AnalyticsSummary], []),
+  'getContactMessages' : IDL.Func(
+      [],
+      [IDL.Variant({ 'ok' : IDL.Vec(ContactMessage), 'err' : IDL.Text })],
+      [],
+    ),
+  'getCoupons' : IDL.Func(
+      [],
+      [IDL.Variant({ 'ok' : IDL.Vec(Coupon), 'err' : IDL.Text })],
+      [],
+    ),
+  'getDashboardStats' : IDL.Func(
+      [],
+      [IDL.Variant({ 'ok' : AnalyticsSummary, 'err' : IDL.Text })],
+      [],
+    ),
   'getFAQs' : IDL.Func([], [IDL.Vec(FaqItem)], ['query']),
   'getFaqItems' : IDL.Func([], [IDL.Vec(FaqItem)], ['query']),
   'getHeroSlides' : IDL.Func([], [IDL.Vec(HeroSlide)], ['query']),
-  'getOrder' : IDL.Func([IDL.Text], [IDL.Opt(Order)], []),
-  'getOrders' : IDL.Func([], [IDL.Vec(Order)], []),
+  'getImageUploadUrl' : IDL.Func(
+      [IDL.Text, IDL.Text],
+      [
+        IDL.Variant({
+          'ok' : IDL.Record({ 'publicUrl' : IDL.Text, 'uploadUrl' : IDL.Text }),
+          'err' : IDL.Text,
+        }),
+      ],
+      [],
+    ),
+  'getOrder' : IDL.Func(
+      [IDL.Text],
+      [IDL.Variant({ 'ok' : IDL.Opt(Order), 'err' : IDL.Text })],
+      [],
+    ),
+  'getOrders' : IDL.Func(
+      [],
+      [IDL.Variant({ 'ok' : IDL.Vec(Order), 'err' : IDL.Text })],
+      [],
+    ),
   'getProduct' : IDL.Func([IDL.Text], [IDL.Opt(Product)], ['query']),
   'getProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
-  'getRecentOrders' : IDL.Func([IDL.Nat], [IDL.Vec(Order)], []),
+  'getRecentOrders' : IDL.Func(
+      [IDL.Nat],
+      [IDL.Variant({ 'ok' : IDL.Vec(Order), 'err' : IDL.Text })],
+      [],
+    ),
   'getSiteSettings' : IDL.Func([], [SiteSettings], ['query']),
   'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
-  'getTopProducts' : IDL.Func([IDL.Nat], [IDL.Vec(TopProduct)], []),
+  'getTopProducts' : IDL.Func(
+      [IDL.Nat],
+      [IDL.Variant({ 'ok' : IDL.Vec(TopProduct), 'err' : IDL.Text })],
+      [],
+    ),
+  'hasAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
+  'setAdminPrincipal' : IDL.Func(
+      [],
+      [IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text })],
+      [],
+    ),
+  'setAdminPrincipalExplicit' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+      [],
+    ),
   'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
-  'storeOrder' : IDL.Func([OrderInput], [Order], []),
-  'submitContact' : IDL.Func([ContactMessage], [IDL.Bool], []),
-  'toggleCoupon' : IDL.Func([IDL.Text], [IDL.Opt(Coupon)], []),
-  'toggleProductVisibility' : IDL.Func([IDL.Text], [IDL.Opt(Product)], []),
+  'storeOrder' : IDL.Func(
+      [OrderInput],
+      [IDL.Variant({ 'ok' : Order, 'err' : IDL.Text })],
+      [],
+    ),
+  'submitContact' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text],
+      [IDL.Variant({ 'ok' : ContactMessage, 'err' : IDL.Text })],
+      [],
+    ),
+  'toggleCoupon' : IDL.Func(
+      [IDL.Text],
+      [IDL.Variant({ 'ok' : Coupon, 'err' : IDL.Text })],
+      [],
+    ),
+  'toggleProductVisibility' : IDL.Func(
+      [IDL.Text],
+      [IDL.Variant({ 'ok' : Product, 'err' : IDL.Text })],
+      [],
+    ),
   'transform' : IDL.Func(
       [TransformationInput],
       [TransformationOutput],
       ['query'],
     ),
-  'updateCoupon' : IDL.Func([IDL.Text, CouponInput], [IDL.Opt(Coupon)], []),
-  'updateFAQ' : IDL.Func([IDL.Text, FaqItemInput], [IDL.Opt(FaqItem)], []),
+  'updateCoupon' : IDL.Func(
+      [IDL.Text, CouponInput],
+      [IDL.Variant({ 'ok' : Coupon, 'err' : IDL.Text })],
+      [],
+    ),
+  'updateFAQ' : IDL.Func(
+      [IDL.Text, FaqItemInput],
+      [IDL.Variant({ 'ok' : FaqItem, 'err' : IDL.Text })],
+      [],
+    ),
   'updateHeroSlide' : IDL.Func(
       [IDL.Text, HeroSlideInput],
-      [IDL.Opt(HeroSlide)],
+      [IDL.Variant({ 'ok' : HeroSlide, 'err' : IDL.Text })],
       [],
     ),
-  'updateOrderStatus' : IDL.Func([IDL.Text, OrderStatus], [IDL.Opt(Order)], []),
-  'updateProduct' : IDL.Func([IDL.Text, ProductInput], [IDL.Opt(Product)], []),
-  'updateSiteSettings' : IDL.Func([SiteSettings], [SiteSettings], []),
+  'updateOrderStatus' : IDL.Func(
+      [IDL.Text, OrderStatus],
+      [IDL.Variant({ 'ok' : Order, 'err' : IDL.Text })],
+      [],
+    ),
+  'updateProduct' : IDL.Func(
+      [IDL.Text, ProductInput],
+      [IDL.Variant({ 'ok' : Product, 'err' : IDL.Text })],
+      [],
+    ),
+  'updateSiteSettings' : IDL.Func(
+      [SiteSettings],
+      [IDL.Variant({ 'ok' : SiteSettings, 'err' : IDL.Text })],
+      [],
+    ),
   'updateSiteSettingsPartial' : IDL.Func(
       [SiteSettingsInput],
-      [SiteSettings],
+      [IDL.Variant({ 'ok' : SiteSettings, 'err' : IDL.Text })],
       [],
     ),
-  'upsertFaqItem' : IDL.Func([FaqItemInput], [FaqItem], []),
-  'upsertHeroSlide' : IDL.Func([HeroSlideInput], [HeroSlide], []),
-  'validateAdminSession' : IDL.Func([IDL.Text], [IDL.Bool], []),
+  'upsertFaqItem' : IDL.Func(
+      [FaqItemInput],
+      [IDL.Variant({ 'ok' : FaqItem, 'err' : IDL.Text })],
+      [],
+    ),
+  'upsertHeroSlide' : IDL.Func(
+      [HeroSlideInput],
+      [IDL.Variant({ 'ok' : HeroSlide, 'err' : IDL.Text })],
+      [],
+    ),
   'validateCoupon' : IDL.Func([IDL.Text], [CouponValidation], ['query']),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const _ImmutableObjectStorageCreateCertificateResult = IDL.Record({
+    'method' : IDL.Text,
+    'blob_hash' : IDL.Text,
+  });
+  const _ImmutableObjectStorageRefillInformation = IDL.Record({
+    'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+  });
+  const _ImmutableObjectStorageRefillResult = IDL.Record({
+    'success' : IDL.Opt(IDL.Bool),
+    'topped_up_amount' : IDL.Opt(IDL.Nat),
+  });
   const Timestamp = IDL.Int;
   const CouponInput = IDL.Record({
     'expiryDate' : IDL.Opt(Timestamp),
@@ -334,6 +533,7 @@ export const idlFactory = ({ IDL }) => {
     'displayOrder' : IDL.Nat,
     'imageUrl' : IDL.Text,
     'isVisible' : IDL.Bool,
+    'highlight' : IDL.Text,
     'subtitle' : IDL.Text,
   });
   const HeroSlide = IDL.Record({
@@ -342,6 +542,7 @@ export const idlFactory = ({ IDL }) => {
     'displayOrder' : IDL.Nat,
     'imageUrl' : IDL.Text,
     'isVisible' : IDL.Bool,
+    'highlight' : IDL.Text,
     'subtitle' : IDL.Text,
   });
   const ProductVariant = IDL.Record({
@@ -434,6 +635,12 @@ export const idlFactory = ({ IDL }) => {
     'totalRevenue' : IDL.Nat,
     'deliveredOrders' : IDL.Nat,
   });
+  const ContactMessage = IDL.Record({
+    'name' : IDL.Text,
+    'email' : IDL.Text,
+    'message' : IDL.Text,
+    'timestamp' : IDL.Int,
+  });
   const SiteSettings = IDL.Record({
     'announcementBannerText' : IDL.Text,
     'whatsappOrderEnabled' : IDL.Bool,
@@ -470,11 +677,6 @@ export const idlFactory = ({ IDL }) => {
     'phone' : IDL.Text,
     'items' : IDL.Vec(OrderItem),
   });
-  const ContactMessage = IDL.Record({
-    'name' : IDL.Text,
-    'email' : IDL.Text,
-    'message' : IDL.Text,
-  });
   const http_header = IDL.Record({ 'value' : IDL.Text, 'name' : IDL.Text });
   const http_request_result = IDL.Record({
     'status' : IDL.Nat,
@@ -502,21 +704,57 @@ export const idlFactory = ({ IDL }) => {
   });
   
   return IDL.Service({
-    '_initializeAccessControl' : IDL.Func([], [], []),
-    'addCoupon' : IDL.Func([CouponInput], [Coupon], []),
-    'addFAQ' : IDL.Func([FaqItemInput], [FaqItem], []),
-    'addHeroSlide' : IDL.Func([HeroSlideInput], [HeroSlide], []),
-    'addProduct' : IDL.Func([ProductInput], [Product], []),
-    'adminLogin' : IDL.Func(
-        [IDL.Text, IDL.Text],
-        [IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text })],
+    '_immutableObjectStorageBlobsAreLive' : IDL.Func(
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [IDL.Vec(IDL.Bool)],
+        ['query'],
+      ),
+    '_immutableObjectStorageBlobsToDelete' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        ['query'],
+      ),
+    '_immutableObjectStorageConfirmBlobDeletion' : IDL.Func(
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [],
         [],
       ),
-    'adminLogout' : IDL.Func([IDL.Text], [], []),
+    '_immutableObjectStorageCreateCertificate' : IDL.Func(
+        [IDL.Text],
+        [_ImmutableObjectStorageCreateCertificateResult],
+        [],
+      ),
+    '_immutableObjectStorageRefillCashier' : IDL.Func(
+        [IDL.Opt(_ImmutableObjectStorageRefillInformation)],
+        [_ImmutableObjectStorageRefillResult],
+        [],
+      ),
+    '_immutableObjectStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
+    '_initializeAccessControl' : IDL.Func([], [], []),
+    'addCoupon' : IDL.Func(
+        [CouponInput],
+        [IDL.Variant({ 'ok' : Coupon, 'err' : IDL.Text })],
+        [],
+      ),
+    'addFAQ' : IDL.Func(
+        [FaqItemInput],
+        [IDL.Variant({ 'ok' : FaqItem, 'err' : IDL.Text })],
+        [],
+      ),
+    'addHeroSlide' : IDL.Func(
+        [HeroSlideInput],
+        [IDL.Variant({ 'ok' : HeroSlide, 'err' : IDL.Text })],
+        [],
+      ),
+    'addProduct' : IDL.Func(
+        [ProductInput],
+        [IDL.Variant({ 'ok' : Product, 'err' : IDL.Text })],
+        [],
+      ),
     'applyCoupon' : IDL.Func([IDL.Text], [CouponValidation], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'changeAdminPassword' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Text],
+    'checkIsAdmin' : IDL.Func(
+        [],
         [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
         [],
       ),
@@ -525,68 +763,201 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Text],
         [],
       ),
-    'createCoupon' : IDL.Func([CouponInput], [Coupon], []),
-    'deleteCoupon' : IDL.Func([IDL.Text], [IDL.Bool], []),
-    'deleteFAQ' : IDL.Func([IDL.Text], [IDL.Bool], []),
-    'deleteFaqItem' : IDL.Func([IDL.Text], [IDL.Bool], []),
-    'deleteHeroSlide' : IDL.Func([IDL.Text], [IDL.Bool], []),
-    'deleteProduct' : IDL.Func([IDL.Text], [IDL.Bool], []),
-    'getAdminCoupons' : IDL.Func([], [IDL.Vec(Coupon)], []),
-    'getAdminOrders' : IDL.Func([], [IDL.Vec(Order)], []),
-    'getAdminProducts' : IDL.Func([], [IDL.Vec(Product)], []),
-    'getAnalyticsSummary' : IDL.Func([], [AnalyticsSummary], []),
+    'createCoupon' : IDL.Func(
+        [CouponInput],
+        [IDL.Variant({ 'ok' : Coupon, 'err' : IDL.Text })],
+        [],
+      ),
+    'deleteCoupon' : IDL.Func(
+        [IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Bool, 'err' : IDL.Text })],
+        [],
+      ),
+    'deleteFAQ' : IDL.Func(
+        [IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Bool, 'err' : IDL.Text })],
+        [],
+      ),
+    'deleteFaqItem' : IDL.Func(
+        [IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Bool, 'err' : IDL.Text })],
+        [],
+      ),
+    'deleteHeroSlide' : IDL.Func(
+        [IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Bool, 'err' : IDL.Text })],
+        [],
+      ),
+    'deleteProduct' : IDL.Func(
+        [IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Bool, 'err' : IDL.Text })],
+        [],
+      ),
+    'getAdminCoupons' : IDL.Func(
+        [],
+        [IDL.Variant({ 'ok' : IDL.Vec(Coupon), 'err' : IDL.Text })],
+        [],
+      ),
+    'getAdminOrders' : IDL.Func(
+        [],
+        [IDL.Variant({ 'ok' : IDL.Vec(Order), 'err' : IDL.Text })],
+        [],
+      ),
+    'getAdminPrincipal' : IDL.Func(
+        [],
+        [IDL.Variant({ 'ok' : IDL.Opt(IDL.Text), 'err' : IDL.Text })],
+        [],
+      ),
+    'getAdminProducts' : IDL.Func(
+        [],
+        [IDL.Variant({ 'ok' : IDL.Vec(Product), 'err' : IDL.Text })],
+        [],
+      ),
+    'getAnalyticsSummary' : IDL.Func(
+        [],
+        [IDL.Variant({ 'ok' : AnalyticsSummary, 'err' : IDL.Text })],
+        [],
+      ),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-    'getCoupons' : IDL.Func([], [IDL.Vec(Coupon)], []),
-    'getDashboardStats' : IDL.Func([], [AnalyticsSummary], []),
+    'getContactMessages' : IDL.Func(
+        [],
+        [IDL.Variant({ 'ok' : IDL.Vec(ContactMessage), 'err' : IDL.Text })],
+        [],
+      ),
+    'getCoupons' : IDL.Func(
+        [],
+        [IDL.Variant({ 'ok' : IDL.Vec(Coupon), 'err' : IDL.Text })],
+        [],
+      ),
+    'getDashboardStats' : IDL.Func(
+        [],
+        [IDL.Variant({ 'ok' : AnalyticsSummary, 'err' : IDL.Text })],
+        [],
+      ),
     'getFAQs' : IDL.Func([], [IDL.Vec(FaqItem)], ['query']),
     'getFaqItems' : IDL.Func([], [IDL.Vec(FaqItem)], ['query']),
     'getHeroSlides' : IDL.Func([], [IDL.Vec(HeroSlide)], ['query']),
-    'getOrder' : IDL.Func([IDL.Text], [IDL.Opt(Order)], []),
-    'getOrders' : IDL.Func([], [IDL.Vec(Order)], []),
+    'getImageUploadUrl' : IDL.Func(
+        [IDL.Text, IDL.Text],
+        [
+          IDL.Variant({
+            'ok' : IDL.Record({
+              'publicUrl' : IDL.Text,
+              'uploadUrl' : IDL.Text,
+            }),
+            'err' : IDL.Text,
+          }),
+        ],
+        [],
+      ),
+    'getOrder' : IDL.Func(
+        [IDL.Text],
+        [IDL.Variant({ 'ok' : IDL.Opt(Order), 'err' : IDL.Text })],
+        [],
+      ),
+    'getOrders' : IDL.Func(
+        [],
+        [IDL.Variant({ 'ok' : IDL.Vec(Order), 'err' : IDL.Text })],
+        [],
+      ),
     'getProduct' : IDL.Func([IDL.Text], [IDL.Opt(Product)], ['query']),
     'getProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
-    'getRecentOrders' : IDL.Func([IDL.Nat], [IDL.Vec(Order)], []),
+    'getRecentOrders' : IDL.Func(
+        [IDL.Nat],
+        [IDL.Variant({ 'ok' : IDL.Vec(Order), 'err' : IDL.Text })],
+        [],
+      ),
     'getSiteSettings' : IDL.Func([], [SiteSettings], ['query']),
     'getStripeSessionStatus' : IDL.Func([IDL.Text], [StripeSessionStatus], []),
-    'getTopProducts' : IDL.Func([IDL.Nat], [IDL.Vec(TopProduct)], []),
+    'getTopProducts' : IDL.Func(
+        [IDL.Nat],
+        [IDL.Variant({ 'ok' : IDL.Vec(TopProduct), 'err' : IDL.Text })],
+        [],
+      ),
+    'hasAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isStripeConfigured' : IDL.Func([], [IDL.Bool], ['query']),
+    'setAdminPrincipal' : IDL.Func(
+        [],
+        [IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text })],
+        [],
+      ),
+    'setAdminPrincipalExplicit' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Variant({ 'ok' : IDL.Null, 'err' : IDL.Text })],
+        [],
+      ),
     'setStripeConfiguration' : IDL.Func([StripeConfiguration], [], []),
-    'storeOrder' : IDL.Func([OrderInput], [Order], []),
-    'submitContact' : IDL.Func([ContactMessage], [IDL.Bool], []),
-    'toggleCoupon' : IDL.Func([IDL.Text], [IDL.Opt(Coupon)], []),
-    'toggleProductVisibility' : IDL.Func([IDL.Text], [IDL.Opt(Product)], []),
+    'storeOrder' : IDL.Func(
+        [OrderInput],
+        [IDL.Variant({ 'ok' : Order, 'err' : IDL.Text })],
+        [],
+      ),
+    'submitContact' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text],
+        [IDL.Variant({ 'ok' : ContactMessage, 'err' : IDL.Text })],
+        [],
+      ),
+    'toggleCoupon' : IDL.Func(
+        [IDL.Text],
+        [IDL.Variant({ 'ok' : Coupon, 'err' : IDL.Text })],
+        [],
+      ),
+    'toggleProductVisibility' : IDL.Func(
+        [IDL.Text],
+        [IDL.Variant({ 'ok' : Product, 'err' : IDL.Text })],
+        [],
+      ),
     'transform' : IDL.Func(
         [TransformationInput],
         [TransformationOutput],
         ['query'],
       ),
-    'updateCoupon' : IDL.Func([IDL.Text, CouponInput], [IDL.Opt(Coupon)], []),
-    'updateFAQ' : IDL.Func([IDL.Text, FaqItemInput], [IDL.Opt(FaqItem)], []),
+    'updateCoupon' : IDL.Func(
+        [IDL.Text, CouponInput],
+        [IDL.Variant({ 'ok' : Coupon, 'err' : IDL.Text })],
+        [],
+      ),
+    'updateFAQ' : IDL.Func(
+        [IDL.Text, FaqItemInput],
+        [IDL.Variant({ 'ok' : FaqItem, 'err' : IDL.Text })],
+        [],
+      ),
     'updateHeroSlide' : IDL.Func(
         [IDL.Text, HeroSlideInput],
-        [IDL.Opt(HeroSlide)],
+        [IDL.Variant({ 'ok' : HeroSlide, 'err' : IDL.Text })],
         [],
       ),
     'updateOrderStatus' : IDL.Func(
         [IDL.Text, OrderStatus],
-        [IDL.Opt(Order)],
+        [IDL.Variant({ 'ok' : Order, 'err' : IDL.Text })],
         [],
       ),
     'updateProduct' : IDL.Func(
         [IDL.Text, ProductInput],
-        [IDL.Opt(Product)],
+        [IDL.Variant({ 'ok' : Product, 'err' : IDL.Text })],
         [],
       ),
-    'updateSiteSettings' : IDL.Func([SiteSettings], [SiteSettings], []),
+    'updateSiteSettings' : IDL.Func(
+        [SiteSettings],
+        [IDL.Variant({ 'ok' : SiteSettings, 'err' : IDL.Text })],
+        [],
+      ),
     'updateSiteSettingsPartial' : IDL.Func(
         [SiteSettingsInput],
-        [SiteSettings],
+        [IDL.Variant({ 'ok' : SiteSettings, 'err' : IDL.Text })],
         [],
       ),
-    'upsertFaqItem' : IDL.Func([FaqItemInput], [FaqItem], []),
-    'upsertHeroSlide' : IDL.Func([HeroSlideInput], [HeroSlide], []),
-    'validateAdminSession' : IDL.Func([IDL.Text], [IDL.Bool], []),
+    'upsertFaqItem' : IDL.Func(
+        [FaqItemInput],
+        [IDL.Variant({ 'ok' : FaqItem, 'err' : IDL.Text })],
+        [],
+      ),
+    'upsertHeroSlide' : IDL.Func(
+        [HeroSlideInput],
+        [IDL.Variant({ 'ok' : HeroSlide, 'err' : IDL.Text })],
+        [],
+      ),
     'validateCoupon' : IDL.Func([IDL.Text], [CouponValidation], ['query']),
   });
 };

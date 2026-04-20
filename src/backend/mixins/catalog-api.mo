@@ -1,18 +1,15 @@
 import Map "mo:core/Map";
-import Runtime "mo:core/Runtime";
-import AccessControl "mo:caffeineai-authorization/access-control";
+import Debug "mo:core/Debug";
+import Principal "mo:core/Principal";
+import ContentLib "../lib/content";
+import ContentTypes "../types/content";
 import CatalogLib "../lib/catalog";
 import CatalogTypes "../types/catalog";
 
 mixin (
-  accessControlState : AccessControl.AccessControlState,
+  adminPrincipalStore : ContentTypes.AdminPrincipalStore,
   products : Map.Map<Text, CatalogTypes.Product>,
 ) {
-  // Seed products on first admin call if empty
-  private func ensureCatalogSeeded() {
-    CatalogLib.seedDefaultProducts(products);
-  };
-
   // Public reads — no auth required, returns visible products only
   public query func getProducts() : async [CatalogTypes.Product] {
     CatalogLib.getVisibleProducts(products);
@@ -23,40 +20,64 @@ mixin (
   };
 
   // Admin: get ALL products including hidden
-  public shared ({ caller }) func getAdminProducts() : async [CatalogTypes.Product] {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can view all products");
+  public shared ({ caller }) func getAdminProducts() : async { #ok : [CatalogTypes.Product]; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    ensureCatalogSeeded();
-    CatalogLib.getProducts(products);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    Debug.print("[Farm72] getAdminProducts called by: " # caller.toText());
+    #ok(CatalogLib.getProducts(products));
   };
 
   // Admin mutations
-  public shared ({ caller }) func addProduct(input : CatalogTypes.ProductInput) : async CatalogTypes.Product {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can add products");
+  public shared ({ caller }) func addProduct(input : CatalogTypes.ProductInput) : async { #ok : CatalogTypes.Product; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    Debug.print("[Farm72] addProduct called by: " # caller.toText() # " id=" # input.id);
     CatalogLib.addProduct(products, input);
   };
 
-  public shared ({ caller }) func updateProduct(id : Text, input : CatalogTypes.ProductInput) : async ?CatalogTypes.Product {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can update products");
+  public shared ({ caller }) func updateProduct(id : Text, input : CatalogTypes.ProductInput) : async { #ok : CatalogTypes.Product; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    CatalogLib.updateProduct(products, id, input);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    Debug.print("[Farm72] updateProduct called by: " # caller.toText() # " id=" # id);
+    switch (CatalogLib.updateProduct(products, id, input)) {
+      case null #err("Product not found: " # id);
+      case (?p) #ok(p);
+    };
   };
 
-  public shared ({ caller }) func deleteProduct(id : Text) : async Bool {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can delete products");
+  public shared ({ caller }) func deleteProduct(id : Text) : async { #ok : Bool; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    CatalogLib.deleteProduct(products, id);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    Debug.print("[Farm72] deleteProduct called by: " # caller.toText() # " id=" # id);
+    #ok(CatalogLib.deleteProduct(products, id));
   };
 
-  public shared ({ caller }) func toggleProductVisibility(id : Text) : async ?CatalogTypes.Product {
-    if (not AccessControl.hasPermission(accessControlState, caller, #admin)) {
-      Runtime.trap("Unauthorized: Only admins can toggle product visibility");
+  public shared ({ caller }) func toggleProductVisibility(id : Text) : async { #ok : CatalogTypes.Product; #err : Text } {
+    if (caller.isAnonymous()) {
+      return #err("User not authenticated");
     };
-    CatalogLib.toggleVisibility(products, id);
+    if (not ContentLib.isAdmin(adminPrincipalStore, caller)) {
+      return #err("Unauthorized: Admin access only");
+    };
+    switch (CatalogLib.toggleVisibility(products, id)) {
+      case null #err("Product not found: " # id);
+      case (?p) #ok(p);
+    };
   };
 };

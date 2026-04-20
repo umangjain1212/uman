@@ -7,19 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { useAdmin } from "@/hooks/useAdmin";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  AlertCircle,
-  Eye,
-  EyeOff,
-  KeyRound,
-  Lock,
-  Save,
-  Settings,
-  Shield,
-} from "lucide-react";
+import { AlertCircle, Save, Settings, Shield, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -36,21 +26,10 @@ const DEFAULT_SETTINGS: SiteSettings = {
 
 export function AdminSettings() {
   const { actor, isFetching: actorFetching } = useActor(createActor);
-  const { changePassword } = useAdmin();
   const enabled = !!actor && !actorFetching;
   const queryClient = useQueryClient();
 
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
-
-  // Password change form state
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showCurrentPw, setShowCurrentPw] = useState(false);
-  const [showNewPw, setShowNewPw] = useState(false);
-  const [pwError, setPwError] = useState<string | null>(null);
-  const [pwSuccess, setPwSuccess] = useState(false);
-  const [changingPw, setChangingPw] = useState(false);
 
   const {
     data: loadedSettings,
@@ -74,14 +53,18 @@ export function AdminSettings() {
   const saveMutation = useMutation({
     mutationFn: async (input: SiteSettingsInput) => {
       if (!actor) throw new Error("No actor");
-      return actor.updateSiteSettingsPartial(input);
+      console.log("[AdminSettings] updateSiteSettingsPartial:", input);
+      const result = await actor.updateSiteSettingsPartial(input);
+      if (result.__kind__ === "ok") return result.ok;
+      throw new Error(result.err);
     },
     onSuccess: (updated) => {
       setSettings(updated);
       queryClient.invalidateQueries({ queryKey: ["admin-site-settings"] });
       toast.success("Settings saved successfully!");
     },
-    onError: () => {
+    onError: (err) => {
+      console.error("[AdminSettings] save error:", err);
       toast.error("Failed to save settings");
     },
   });
@@ -96,41 +79,6 @@ export function AdminSettings() {
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
     saveMutation.mutate(settings);
-  }
-
-  async function handlePasswordChange(e: React.FormEvent) {
-    e.preventDefault();
-    setPwError(null);
-    setPwSuccess(false);
-
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setPwError("All password fields are required.");
-      return;
-    }
-    if (newPassword.length < 8) {
-      setPwError("New password must be at least 8 characters.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPwError("New password and confirm password do not match.");
-      return;
-    }
-
-    setChangingPw(true);
-    try {
-      await changePassword(currentPassword, newPassword);
-      setPwSuccess(true);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      toast.success("Password changed successfully!");
-    } catch (err) {
-      setPwError(
-        err instanceof Error ? err.message : "Failed to change password",
-      );
-    } finally {
-      setChangingPw(false);
-    }
   }
 
   return (
@@ -224,7 +172,7 @@ export function AdminSettings() {
         {/* Contact & Payments */}
         <section className="bg-card border border-border rounded-xl p-6 space-y-5 shadow-subtle">
           <h2 className="font-display font-semibold text-base border-b border-border pb-3">
-            Contact & Payments
+            Contact &amp; Payments
           </h2>
 
           {isLoading ? (
@@ -318,153 +266,40 @@ export function AdminSettings() {
         </Button>
       </form>
 
-      {/* Security — Change Password */}
+      {/* Security — Internet Identity */}
       <div className="max-w-2xl mt-8">
-        <section className="bg-card border border-primary/20 rounded-xl p-6 space-y-5 shadow-subtle">
+        <section className="bg-card border border-primary/20 rounded-xl p-6 space-y-4 shadow-subtle">
           <h2 className="font-display font-semibold text-base flex items-center gap-2 text-primary border-b border-primary/20 pb-3">
-            <KeyRound className="w-4 h-4" />
-            Security &amp; Password
+            <ShieldCheck className="w-4 h-4" />
+            Security &amp; Authentication
           </h2>
-
-          <form
-            onSubmit={handlePasswordChange}
-            className="space-y-4"
-            noValidate
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Current Password */}
-              <div className="admin-form-group sm:col-span-2">
-                <Label className="admin-form-label" htmlFor="current-password">
-                  Current Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    id="current-password"
-                    type={showCurrentPw ? "text" : "password"}
-                    autoComplete="current-password"
-                    value={currentPassword}
-                    onChange={(e) => {
-                      setCurrentPassword(e.target.value);
-                      setPwError(null);
-                    }}
-                    className="pl-9 pr-10"
-                    placeholder="Current password"
-                    data-ocid="admin-settings-current-password-input"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPw((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label="Toggle current password visibility"
-                    tabIndex={-1}
-                  >
-                    {showCurrentPw ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* New Password */}
-              <div className="admin-form-group">
-                <Label className="admin-form-label" htmlFor="new-password">
-                  New Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    id="new-password"
-                    type={showNewPw ? "text" : "password"}
-                    autoComplete="new-password"
-                    value={newPassword}
-                    onChange={(e) => {
-                      setNewPassword(e.target.value);
-                      setPwError(null);
-                    }}
-                    className="pl-9 pr-10"
-                    placeholder="Min. 8 characters"
-                    data-ocid="admin-settings-new-password-input"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPw((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label="Toggle new password visibility"
-                    tabIndex={-1}
-                  >
-                    {showNewPw ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm Password */}
-              <div className="admin-form-group">
-                <Label className="admin-form-label" htmlFor="confirm-password">
-                  Confirm New Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      setPwError(null);
-                    }}
-                    className="pl-9"
-                    placeholder="Repeat new password"
-                    data-ocid="admin-settings-confirm-password-input"
-                  />
-                </div>
-              </div>
+          <div className="flex gap-3 items-start bg-primary/5 border border-primary/20 rounded-xl p-4">
+            <ShieldCheck className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium text-foreground">
+                Secured by Internet Identity
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                This admin panel uses{" "}
+                <strong className="text-foreground">Internet Identity</strong>{" "}
+                for authentication — ICP&apos;s secure, privacy-preserving login
+                system. No passwords are stored anywhere. Your identity is
+                cryptographically verified on every session.
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                To manage your Internet Identity (devices, recovery, etc.),
+                visit{" "}
+                <a
+                  href="https://identity.internetcomputer.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                >
+                  identity.internetcomputer.org
+                </a>
+              </p>
             </div>
-
-            {pwError && (
-              <div
-                className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg px-3 py-2.5 text-sm"
-                data-ocid="admin-settings-pw-error-state"
-              >
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{pwError}</span>
-              </div>
-            )}
-
-            {pwSuccess && (
-              <div
-                className="flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary rounded-lg px-3 py-2.5 text-sm"
-                data-ocid="admin-settings-pw-success-state"
-              >
-                <KeyRound className="w-4 h-4 flex-shrink-0" />
-                <span className="font-medium">
-                  Password changed successfully!
-                </span>
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              variant="outline"
-              className="gap-2 border-primary/30 text-primary hover:bg-primary/5"
-              disabled={changingPw}
-              data-ocid="admin-settings-change-password-button"
-            >
-              {changingPw ? (
-                <span className="w-4 h-4 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
-              ) : (
-                <KeyRound className="w-4 h-4" />
-              )}
-              {changingPw ? "Changing..." : "Change Password"}
-            </Button>
-          </form>
+          </div>
         </section>
       </div>
     </AdminLayout>

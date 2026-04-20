@@ -1,48 +1,31 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, Leaf, Lock, LogIn, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { CheckCircle, Leaf, Loader2, ShieldCheck } from "lucide-react";
+import { useEffect } from "react";
 
 export function AdminLogin() {
-  const { isAuthenticated, isLoading, login } = useAdmin();
+  const { isAuthenticated, isLoading, loginWithII, adminStatus, adminError } =
+    useAdmin();
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
+  // Redirect immediately when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       navigate({ to: "/admin/dashboard" });
     }
   }, [isAuthenticated, navigate]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    if (!username.trim() || !password.trim()) {
-      setError("Please enter username and password.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await login(username.trim(), password);
-      navigate({ to: "/admin/dashboard" });
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Invalid username or password",
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  const isLoggingIn =
+    adminStatus === "logging-in" || adminStatus === "verifying";
+  const busy = isLoading || isLoggingIn;
 
-  const busy = submitting || isLoading;
+  const statusMsg =
+    adminStatus === "logging-in"
+      ? "Waiting for Internet Identity..."
+      : adminStatus === "verifying"
+        ? "Verifying admin access..."
+        : null;
 
   return (
     <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
@@ -72,98 +55,65 @@ export function AdminLogin() {
           {/* Divider */}
           <div className="border-t border-border" />
 
-          {/* Login form */}
-          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          {/* Login section */}
+          <div className="space-y-5">
             <div className="text-center space-y-1">
               <h2 className="font-display font-semibold text-lg text-foreground">
                 Owner Access Only
               </h2>
               <p className="text-sm text-muted-foreground">
-                Enter your credentials to access the admin dashboard.
+                Sign in with your Internet Identity to access the admin
+                dashboard.
               </p>
             </div>
 
-            {/* Username */}
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="admin-username"
-                className="text-sm font-medium text-foreground"
-              >
-                Username
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  id="admin-username"
-                  type="text"
-                  autoComplete="username"
-                  value={username}
-                  onChange={(e) => {
-                    setUsername(e.target.value);
-                    setError(null);
-                  }}
-                  placeholder="admin"
-                  className="pl-9 h-11"
-                  disabled={busy}
-                  data-ocid="admin-login-username-input"
-                />
-              </div>
+            {/* II Info Box */}
+            <div className="flex gap-3 items-start bg-primary/5 border border-primary/20 rounded-xl p-4">
+              <ShieldCheck className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-foreground/80 leading-relaxed">
+                Authentication is handled via{" "}
+                <strong className="text-foreground">Internet Identity</strong> —
+                the secure, privacy-preserving login system for the Internet
+                Computer. No password needed.
+              </p>
             </div>
 
-            {/* Password */}
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="admin-password"
-                className="text-sm font-medium text-foreground"
-              >
-                Password
-              </Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  id="admin-password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setError(null);
-                  }}
-                  placeholder="••••••••"
-                  className="pl-9 pr-10 h-11"
-                  disabled={busy}
-                  data-ocid="admin-login-password-input"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  tabIndex={-1}
-                  data-ocid="admin-login-toggle-password"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Error message */}
-            {error && (
+            {/* Status message — shown while logging in / verifying */}
+            {statusMsg && !adminError && (
               <div
-                className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg px-3 py-2.5 text-sm"
-                data-ocid="admin-login-error-state"
+                className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm border bg-muted border-border text-muted-foreground"
+                data-ocid="admin-login-loading-state"
               >
-                <span className="font-medium">{error}</span>
+                <Loader2 className="w-4 h-4 flex-shrink-0 animate-spin" />
+                <span>{statusMsg}</span>
               </div>
             )}
 
-            {/* Submit */}
+            {/* Success flash before redirect */}
+            {adminStatus === "success" && isAuthenticated && (
+              <div
+                className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm border bg-primary/10 border-primary/20 text-primary"
+                data-ocid="admin-login-success-state"
+              >
+                <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                <span>Access granted — redirecting…</span>
+              </div>
+            )}
+
+            {/* Error message */}
+            {adminError && (
+              <div
+                className="flex items-start gap-2 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg px-3 py-2.5 text-sm"
+                data-ocid="admin-login-error-state"
+              >
+                <span className="font-medium">{adminError}</span>
+              </div>
+            )}
+
+            {/* Connect Button */}
             <Button
-              type="submit"
+              type="button"
+              onClick={loginWithII}
               disabled={busy}
               className="w-full btn-primary h-11 text-base gap-2"
               data-ocid="admin-login-submit-button"
@@ -171,11 +121,13 @@ export function AdminLogin() {
               {busy ? (
                 <span className="w-4 h-4 border-2 border-primary-foreground/40 border-t-primary-foreground rounded-full animate-spin" />
               ) : (
-                <LogIn className="w-4 h-4" />
+                <ShieldCheck className="w-4 h-4" />
               )}
-              {busy ? "Verifying..." : "Login"}
+              {busy
+                ? (statusMsg ?? "Connecting…")
+                : "Connect with Internet Identity"}
             </Button>
-          </form>
+          </div>
         </div>
 
         {/* Back link */}

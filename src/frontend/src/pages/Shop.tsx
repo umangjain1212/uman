@@ -1,8 +1,14 @@
+import { createActor } from "@/backend";
+import type { Product as BackendProduct } from "@/backend.d";
 import { ProductCard } from "@/components/ProductCard";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { products } from "@/data/products";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Product } from "@/data/products";
+import { mapBackendProduct } from "@/lib/productMapper";
+import { useActor } from "@caffeineai/core-infrastructure";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, Filter, Home, Search, X } from "lucide-react";
 import { motion } from "motion/react";
@@ -18,11 +24,58 @@ const CATEGORY_MAP: Record<Category, string | null> = {
   Juice: "Beverages",
 };
 
+const SKELETON_KEYS = ["sk-a", "sk-b", "sk-c", "sk-d", "sk-e", "sk-f"] as const;
+
+function ProductGridSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {SKELETON_KEYS.map((id) => (
+        <div
+          key={id}
+          className="bg-card rounded-2xl overflow-hidden shadow-card"
+        >
+          <Skeleton className="aspect-[4/3] w-full" />
+          <div className="p-5 space-y-3">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-5 w-3/4" />
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-28 rounded-lg" />
+              <Skeleton className="h-10 w-28 rounded-lg" />
+            </div>
+            <Skeleton className="h-9 w-full rounded-lg" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function Shop() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category>("All");
 
-  const filtered = products.filter((p) => {
+  const { actor, isFetching: actorFetching } = useActor(createActor);
+
+  const { data: allProducts = [], isLoading } = useQuery<Product[]>({
+    queryKey: ["products-shop"],
+    queryFn: async () => {
+      if (!actor) return [];
+      const raw = await actor.getProducts();
+      return raw
+        .filter((p: BackendProduct) => p.isVisible)
+        .sort(
+          (a: BackendProduct, b: BackendProduct) =>
+            Number(a.displayOrder) - Number(b.displayOrder),
+        )
+        .map(mapBackendProduct);
+    },
+    enabled: !!actor && !actorFetching,
+    staleTime: 60_000,
+  });
+
+  const showSkeletons = isLoading || actorFetching;
+
+  const filtered = allProducts.filter((p) => {
     const mappedCategory = CATEGORY_MAP[category];
     const matchesCategory =
       mappedCategory === null || p.category === mappedCategory;
@@ -126,23 +179,29 @@ export function Shop() {
 
       {/* Products Grid */}
       <div className="container mx-auto px-4 sm:px-6 py-10">
-        {/* Results count */}
-        <p className="text-sm text-muted-foreground mb-6">
-          Showing{" "}
-          <span className="font-semibold text-foreground">
-            {filtered.length}
-          </span>{" "}
-          {filtered.length === 1 ? "product" : "products"}
-          {category !== "All" && (
-            <span>
-              {" "}
-              in{" "}
-              <span className="font-semibold text-foreground">{category}</span>
-            </span>
-          )}
-        </p>
+        {/* Results count — only shown when not loading */}
+        {!showSkeletons && (
+          <p className="text-sm text-muted-foreground mb-6">
+            Showing{" "}
+            <span className="font-semibold text-foreground">
+              {filtered.length}
+            </span>{" "}
+            {filtered.length === 1 ? "product" : "products"}
+            {category !== "All" && (
+              <span>
+                {" "}
+                in{" "}
+                <span className="font-semibold text-foreground">
+                  {category}
+                </span>
+              </span>
+            )}
+          </p>
+        )}
 
-        {filtered.length > 0 ? (
+        {showSkeletons ? (
+          <ProductGridSkeleton />
+        ) : filtered.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((product, i) => (
               <motion.div

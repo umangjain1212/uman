@@ -84,9 +84,43 @@ const mockProducts = [
   },
 ];
 
+const mockCoupons = [
+  {
+    code: "FARM10",
+    discountPercent: BigInt(10),
+    isActive: true,
+    usageCount: BigInt(0),
+    expiryDate: undefined,
+    maxUses: undefined,
+  },
+];
+
+const mockSettings = {
+  whatsappNumber: "+917500010488",
+  contactEmail: "info@farm72.com",
+  footerText: "© 2026 Farm72. All rights reserved.",
+  announcementBannerText: "Free shipping on orders above ₹999!",
+  whatsappOrderEnabled: true,
+  maintenanceMode: false,
+  stripeEnabled: true,
+  showAnnouncementBanner: false,
+};
+
+const ok = <T,>(val: T): { __kind__: "ok"; ok: T } => ({ __kind__: "ok" as const, ok: val });
+const err = (msg: string): { __kind__: "err"; err: string } => ({ __kind__: "err" as const, err: msg });
+
 export const mockBackend: backendInterface = {
+  // Object-storage internal methods (platform only — not called by app code)
+  _immutableObjectStorageBlobsAreLive: async () => [],
+  _immutableObjectStorageBlobsToDelete: async () => [],
+  _immutableObjectStorageConfirmBlobDeletion: async () => undefined,
+  _immutableObjectStorageCreateCertificate: async () => ({ method: "mock", blob_hash: "mock" }),
+  _immutableObjectStorageRefillCashier: async () => ({ success: true, topped_up_amount: BigInt(0) }),
+  _immutableObjectStorageUpdateGatewayPrincipals: async () => undefined,
   _initializeAccessControl: async () => undefined,
-  addCoupon: async (input) => ({
+  checkIsAdmin: async () => ok(null),
+  hasAdmin: async () => false,
+  addCoupon: async (input) => ok({
     code: input.code,
     discountPercent: input.discountPercent,
     isActive: input.isActive,
@@ -94,16 +128,16 @@ export const mockBackend: backendInterface = {
     expiryDate: input.expiryDate,
     maxUses: input.maxUses,
   }),
-  addFAQ: async (input) => ({ ...input }),
-  addHeroSlide: async (input) => ({ ...input }),
-  addProduct: async (input) => ({ ...input }),
+  addFAQ: async (input) => ok({ ...input }),
+  addHeroSlide: async (input) => ok({ ...input }),
+  addProduct: async (input) => ok({ ...input }),
   applyCoupon: async (code) =>
     code === "FARM10"
       ? { __kind__: "Valid" as const, Valid: BigInt(10) }
       : { __kind__: "NotFound" as const, NotFound: null },
   assignCallerUserRole: async () => undefined,
   createCheckoutSession: async () => "cs_test_mock_session_id",
-  createCoupon: async (input) => ({
+  createCoupon: async (input) => ok({
     code: input.code,
     discountPercent: input.discountPercent,
     isActive: input.isActive,
@@ -111,41 +145,25 @@ export const mockBackend: backendInterface = {
     expiryDate: input.expiryDate,
     maxUses: input.maxUses,
   }),
-  deleteCoupon: async () => true,
-  deleteFAQ: async () => true,
-  deleteFaqItem: async () => true,
-  deleteHeroSlide: async () => true,
-  deleteProduct: async () => true,
-  getAnalyticsSummary: async () => ({
+  deleteCoupon: async () => ok(true),
+  deleteFAQ: async () => ok(true),
+  deleteFaqItem: async () => ok(true),
+  deleteHeroSlide: async () => ok(true),
+  deleteProduct: async () => ok(true),
+  getAnalyticsSummary: async () => ok({
     totalOrders: BigInt(0),
     pendingOrders: BigInt(0),
     totalRevenue: BigInt(0),
     deliveredOrders: BigInt(0),
   }),
-  getAdminCoupons: async () => [
-    {
-      code: "FARM10",
-      discountPercent: BigInt(10),
-      isActive: true,
-      usageCount: BigInt(0),
-      expiryDate: undefined,
-      maxUses: undefined,
-    },
-  ],
-  getAdminOrders: async () => [],
-  getAdminProducts: async () => mockProducts,
+  getAdminCoupons: async () => ok(mockCoupons),
+  getAdminOrders: async () => ok([]),
+  getAdminProducts: async () => ok(mockProducts),
+  getAdminPrincipal: async () => ok(null),
   getCallerUserRole: async () => UserRole.guest,
-  getCoupons: async () => [
-    {
-      code: "FARM10",
-      discountPercent: BigInt(10),
-      isActive: true,
-      usageCount: BigInt(0),
-      expiryDate: undefined,
-      maxUses: undefined,
-    },
-  ],
-  getDashboardStats: async () => ({
+  getCoupons: async () => ok(mockCoupons),
+  getContactMessages: async () => ok([]),
+  getDashboardStats: async () => ok({
     totalOrders: BigInt(0),
     pendingOrders: BigInt(0),
     totalRevenue: BigInt(0),
@@ -154,30 +172,24 @@ export const mockBackend: backendInterface = {
   getFAQs: async () => [],
   getFaqItems: async () => [],
   getHeroSlides: async () => [],
-  getOrder: async () => null,
-  getOrders: async () => [],
+  getImageUploadUrl: async (_fileName, _contentType) => ok({ uploadUrl: "https://mock-upload.example.com", publicUrl: "/assets/images/placeholder.svg" }),
+  getOrder: async () => ok(null),
+  getOrders: async () => ok([]),
   getProduct: async (id: string) => mockProducts.find((p) => p.id === id) ?? null,
   getProducts: async () => mockProducts,
-  getRecentOrders: async (_limit: bigint) => [],
-  getSiteSettings: async () => ({
-    whatsappNumber: "+917500010488",
-    contactEmail: "info@farm72.com",
-    footerText: "© 2026 Farm72. All rights reserved.",
-    announcementBannerText: "Free shipping on orders above ₹999!",
-    whatsappOrderEnabled: true,
-    maintenanceMode: false,
-    stripeEnabled: true,
-    showAnnouncementBanner: false,
-  }),
+  getRecentOrders: async (_limit: bigint) => ok([]),
+  getSiteSettings: async () => mockSettings,
   getStripeSessionStatus: async () => ({
     __kind__: "failed" as const,
     failed: { error: "mock" },
   }),
-  getTopProducts: async (_limit: bigint) => [],
+  getTopProducts: async (_limit: bigint) => ok([]),
   isCallerAdmin: async () => false,
   isStripeConfigured: async () => false,
+  setAdminPrincipal: async () => ok("mock-principal"),
+  setAdminPrincipalExplicit: async () => ok(null),
   setStripeConfiguration: async () => undefined,
-  storeOrder: async (input) => ({
+  storeOrder: async (input) => ok({
     id: "mock-order-1",
     customerName: input.customerName,
     status: OrderStatus.Pending,
@@ -189,29 +201,31 @@ export const mockBackend: backendInterface = {
     phone: input.phone,
     items: input.items,
   }),
-  submitContact: async () => true,
-  toggleCoupon: async (code: string) => {
-    const coupon = {
-      code,
-      discountPercent: BigInt(10),
-      isActive: true,
-      usageCount: BigInt(0),
-      expiryDate: undefined,
-      maxUses: undefined,
-    };
-    return coupon;
-  },
+  submitContact: async (name: string, email: string, message: string) => ok({
+    name,
+    email,
+    message,
+    timestamp: BigInt(Date.now()),
+  }),
+  toggleCoupon: async (code: string) => ok({
+    code,
+    discountPercent: BigInt(10),
+    isActive: true,
+    usageCount: BigInt(0),
+    expiryDate: undefined,
+    maxUses: undefined,
+  }),
   toggleProductVisibility: async (id: string) => {
     const product = mockProducts.find((p) => p.id === id);
-    if (!product) return null;
-    return { ...product, isVisible: !product.isVisible };
+    if (!product) return err("Product not found");
+    return ok({ ...product, isVisible: !product.isVisible });
   },
   transform: async (input) => ({
     status: BigInt(200),
     body: input.response.body,
     headers: [],
   }),
-  updateCoupon: async (_code, input) => ({
+  updateCoupon: async (_code, input) => ok({
     code: input.code,
     discountPercent: input.discountPercent,
     isActive: input.isActive,
@@ -219,9 +233,9 @@ export const mockBackend: backendInterface = {
     expiryDate: input.expiryDate,
     maxUses: input.maxUses,
   }),
-  updateFAQ: async (_id: string, input) => ({ ...input }),
-  updateHeroSlide: async (_id: string, input) => ({ ...input }),
-  updateOrderStatus: async (id: string, status) => ({
+  updateFAQ: async (_id: string, input) => ok({ ...input }),
+  updateHeroSlide: async (_id: string, input) => ok({ ...input }),
+  updateOrderStatus: async (id, status) => ok({
     id,
     customerName: "Mock Customer",
     status,
@@ -233,9 +247,9 @@ export const mockBackend: backendInterface = {
     phone: "+91 0000000000",
     items: [],
   }),
-  updateProduct: async (_id: string, input) => ({ ...input }),
-  updateSiteSettings: async (settings) => settings,
-  updateSiteSettingsPartial: async (input) => ({
+  updateProduct: async (_id: string, input) => ok({ ...input }),
+  updateSiteSettings: async (settings) => ok(settings),
+  updateSiteSettingsPartial: async (input) => ok({
     whatsappNumber: input.whatsappNumber ?? "+917500010488",
     contactEmail: input.contactEmail ?? "info@farm72.com",
     footerText: input.footerText ?? "© 2026 Farm72. All rights reserved.",
@@ -245,18 +259,8 @@ export const mockBackend: backendInterface = {
     stripeEnabled: input.stripeEnabled ?? true,
     showAnnouncementBanner: input.showAnnouncementBanner ?? false,
   }),
-  adminLogin: async (username, password) =>
-    username === "admin" && password === "Farm72@Admin"
-      ? { __kind__: "ok" as const, ok: "mock-session-token" }
-      : { __kind__: "err" as const, err: "Invalid username or password" },
-  adminLogout: async () => undefined,
-  changeAdminPassword: async (_token, currentPassword, _newPassword) =>
-    currentPassword === "Farm72@Admin"
-      ? { __kind__: "ok" as const, ok: null }
-      : { __kind__: "err" as const, err: "Current password is incorrect" },
-  validateAdminSession: async (token) => token === "mock-session-token",
-  upsertFaqItem: async (input) => ({ ...input }),
-  upsertHeroSlide: async (input) => ({ ...input }),
+  upsertFaqItem: async (input) => ok({ ...input }),
+  upsertHeroSlide: async (input) => ok({ ...input }),
   validateCoupon: async (code) =>
     code === "FARM10"
       ? { __kind__: "Valid" as const, Valid: BigInt(10) }

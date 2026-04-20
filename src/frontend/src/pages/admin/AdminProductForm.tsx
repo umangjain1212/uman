@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { ImagePlus, Plus, Save, X } from "lucide-react";
+import { ImagePlus, Loader2, Plus, Save, Upload, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -74,14 +74,22 @@ export function AdminProductForm() {
   const enabled = !!actor && !actorFetching;
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploadProgress, setImageUploadProgress] = useState<string | null>(
+    null,
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load existing product for edit
+  // Load existing product for edit — use admin API so hidden products can be loaded
   const { data: existingProduct, isLoading: loadingProduct } = useQuery({
     queryKey: ["admin-product", productId],
     queryFn: async () => {
       if (!actor || !productId) return null;
-      return actor.getProduct(productId);
+      const result = await actor.getAdminProducts();
+      if (result.__kind__ === "ok") {
+        return result.ok.find((p) => p.id === productId) ?? null;
+      }
+      throw new Error(result.err);
     },
     enabled: enabled && isEdit,
   });
@@ -112,6 +120,12 @@ export function AdminProductForm() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("No actor");
+      console.log(
+        "[AdminProductForm] saveMutation start — isEdit:",
+        isEdit,
+        "productId:",
+        productId,
+      );
       const input: ProductInput = {
         id: productId ?? crypto.randomUUID(),
         name: form.name,
@@ -136,17 +150,27 @@ export function AdminProductForm() {
       };
       if (isEdit && productId) {
         const result = await actor.updateProduct(productId, input);
-        if (!result) throw new Error("Update failed");
-        return result;
+        if (result.__kind__ === "ok") {
+          console.log("[AdminProductForm] updateProduct success:", result.ok);
+          return result.ok;
+        }
+        throw new Error(result.err);
       }
-      return actor.addProduct(input);
+      const result = await actor.addProduct(input);
+      if (result.__kind__ === "ok") {
+        console.log("[AdminProductForm] addProduct success:", result.ok);
+        return result.ok;
+      }
+      throw new Error(result.err);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success(isEdit ? "Product updated!" : "Product created!");
       navigate({ to: "/admin/products" });
     },
     onError: (err) => {
+      console.error("[AdminProductForm] save error:", err);
       toast.error(
         `Failed: ${err instanceof Error ? err.message : "Unknown error"}`,
       );
@@ -184,14 +208,42 @@ export function AdminProductForm() {
     }));
   }
 
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const localUrl = URL.createObjectURL(file);
-    setField("imageUrl", localUrl);
-    toast.success(
-      "Image preview updated. Upload via image URL field for production.",
-    );
+    if (!file || !actor) return;
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+
+    setImageUploading(true);
+    setImageUploadProgress("Getting upload URL...");
+    try {
+      const result = await actor.getImageUploadUrl(file.name, file.type);
+      if (result.__kind__ === "err") {
+        throw new Error(result.err);
+      }
+      const { uploadUrl, publicUrl } = result.ok;
+
+      setImageUploadProgress("Uploading image...");
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+      if (!uploadRes.ok) {
+        throw new Error(`Upload failed: ${uploadRes.statusText}`);
+      }
+
+      setField("imageUrl", publicUrl);
+      toast.success("Image uploaded successfully!");
+    } catch (err) {
+      console.error("[AdminProductForm] image upload error:", err);
+      toast.error(
+        `Image upload failed: ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
+    } finally {
+      setImageUploading(false);
+      setImageUploadProgress(null);
+    }
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -346,8 +398,16 @@ export function AdminProductForm() {
             Product Image
           </h2>
           <div className="flex flex-col sm:flex-row gap-5 items-start">
+            {/* Thumbnail Preview */}
             <div className="w-32 h-32 rounded-xl border-2 border-dashed border-border overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
-              {form.imageUrl ? (
+              {imageUploading ? (
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+                  <p className="text-xs text-muted-foreground text-center px-1 leading-tight">
+                    {imageUploadProgress}
+                  </p>
+                </div>
+              ) : form.imageUrl ? (
                 <img
                   src={form.imageUrl}
                   alt="Product preview"
@@ -358,10 +418,15 @@ export function AdminProductForm() {
                   }}
                 />
               ) : (
-                <ImagePlus className="w-8 h-8 text-muted-foreground" />
+                <div className="flex flex-col items-center gap-1">
+                  <ImagePlus className="w-8 h-8 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">No image</p>
+                </div>
               )}
             </div>
+
             <div className="flex-1 space-y-3">
+              {/* Hidden file input */}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -369,8 +434,32 @@ export function AdminProductForm() {
                 className="hidden"
                 onChange={handleImageUpload}
               />
+
+              {/* Upload button */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2 w-full sm:w-auto"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={imageUploading || !actor}
+                data-ocid="admin-product-image-upload-button"
+              >
+                {imageUploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                {imageUploading
+                  ? (imageUploadProgress ?? "Uploading...")
+                  : "Upload Image"}
+              </Button>
+
+              {/* URL fallback input */}
               <div className="admin-form-group">
-                <Label className="admin-form-label">Image URL</Label>
+                <Label className="admin-form-label text-xs text-muted-foreground">
+                  Or enter image URL directly
+                </Label>
                 <Input
                   value={form.imageUrl}
                   onChange={(e) => setField("imageUrl", e.target.value)}
@@ -378,19 +467,10 @@ export function AdminProductForm() {
                   data-ocid="admin-product-image-url-input"
                 />
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => fileInputRef.current?.click()}
-                data-ocid="admin-product-image-upload-button"
-              >
-                <ImagePlus className="w-4 h-4" />
-                Preview from file
-              </Button>
+
               <p className="text-xs text-muted-foreground">
-                Recommended: 800×800 px, JPG or PNG
+                Recommended: 800×800 px, JPG or PNG. Upload replaces the URL
+                field automatically.
               </p>
             </div>
           </div>
@@ -476,7 +556,7 @@ export function AdminProductForm() {
           <Button
             type="submit"
             className="btn-primary gap-2"
-            disabled={saveMutation.isPending}
+            disabled={saveMutation.isPending || imageUploading}
             data-ocid="admin-product-save-button"
           >
             {saveMutation.isPending ? (
