@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAdmin } from "@/hooks/useAdmin";
 import { AdminOrderDetail } from "@/pages/admin/AdminOrderDetail";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -37,7 +38,8 @@ const STATUSES: Array<string> = [
 
 export function AdminOrders() {
   const { actor, isFetching: actorFetching } = useActor(createActor);
-  const enabled = !!actor && !actorFetching;
+  const { isAuthenticated } = useAdmin();
+  const enabled = !!actor && !actorFetching && isAuthenticated;
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");

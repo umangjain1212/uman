@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAdmin } from "@/hooks/useAdmin";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -32,7 +33,9 @@ import { toast } from "sonner";
 
 export function AdminProducts() {
   const { actor, isFetching: actorFetching } = useActor(createActor);
-  const enabled = !!actor && !actorFetching;
+  const { isAuthenticated } = useAdmin();
+  // Only enable admin queries once actor is ready AND we're confirmed as admin
+  const enabled = !!actor && !actorFetching && isAuthenticated;
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -46,8 +49,13 @@ export function AdminProducts() {
     queryKey: ["admin-products"],
     queryFn: async () => {
       if (!actor) throw new Error("No actor");
+      console.log("[AdminProducts] fetching products...");
       const result = await actor.getAdminProducts();
-      if (result.__kind__ === "ok") return result.ok;
+      if (result.__kind__ === "ok") {
+        console.log("[AdminProducts] loaded", result.ok.length, "products");
+        return result.ok;
+      }
+      console.error("[AdminProducts] getAdminProducts error:", result.err);
       throw new Error(result.err);
     },
     enabled,
@@ -113,7 +121,10 @@ export function AdminProducts() {
       {error && (
         <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg p-3 text-sm mb-4">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span>Failed to load products from backend.</span>
+          <span>
+            Failed to load products from backend.{" "}
+            {error instanceof Error ? error.message : "Unknown error"}
+          </span>
         </div>
       )}
 

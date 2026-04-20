@@ -3,6 +3,7 @@ import type { AnalyticsSummary, TopProduct } from "@/backend.d";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAdmin } from "@/hooks/useAdmin";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -54,7 +55,8 @@ function StatCard({
 
 export function AdminAnalytics() {
   const { actor, isFetching: actorFetching } = useActor(createActor);
-  const enabled = !!actor && !actorFetching;
+  const { isAuthenticated } = useAdmin();
+  const enabled = !!actor && !actorFetching && isAuthenticated;
 
   const {
     data: analytics,

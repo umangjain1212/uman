@@ -60,7 +60,9 @@ export function Shop() {
     queryKey: ["products-shop"],
     queryFn: async () => {
       if (!actor) return [];
+      console.log("[Shop] fetching products...");
       const raw = await actor.getProducts();
+      console.log("[Shop] loaded", raw.length, "products from backend");
       return raw
         .filter((p: BackendProduct) => p.isVisible)
         .sort(

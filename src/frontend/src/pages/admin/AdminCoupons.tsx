@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { useAdmin } from "@/hooks/useAdmin";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Plus, Trash2 } from "lucide-react";
@@ -34,7 +35,9 @@ const EMPTY_FORM = { code: "", discount: 10, maxUses: 100, expiry: "" };
 
 export function AdminCoupons() {
   const { actor, isFetching: actorFetching } = useActor(createActor);
-  const enabled = !!actor && !actorFetching;
+  const { isAuthenticated } = useAdmin();
+  // Only enable admin queries once actor is ready AND we're confirmed as admin
+  const enabled = !!actor && !actorFetching && isAuthenticated;
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -47,9 +50,13 @@ export function AdminCoupons() {
     queryKey: ["admin-coupons"],
     queryFn: async () => {
       if (!actor) throw new Error("No actor");
-      // Use admin-specific endpoint to get all coupons
+      console.log("[AdminCoupons] fetching coupons...");
       const result = await actor.getAdminCoupons();
-      if (result.__kind__ === "ok") return result.ok;
+      if (result.__kind__ === "ok") {
+        console.log("[AdminCoupons] loaded", result.ok.length, "coupons");
+        return result.ok;
+      }
+      console.error("[AdminCoupons] getAdminCoupons error:", result.err);
       throw new Error(result.err);
     },
     enabled,
@@ -145,7 +152,10 @@ export function AdminCoupons() {
       {error && (
         <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg p-3 text-sm mb-4">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span>Failed to load coupons from backend.</span>
+          <span>
+            Failed to load coupons from backend.{" "}
+            {error instanceof Error ? error.message : "Unknown error"}
+          </span>
         </div>
       )}
 

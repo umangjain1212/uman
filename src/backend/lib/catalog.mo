@@ -93,6 +93,39 @@ module {
     };
   };
 
+  // Correct imageUrl for a product: replaces .jpg with .png and maps known IDs to exact filenames.
+  // Also normalises category values to match frontend expectations.
+  func correctProduct(p : CatalogTypes.Product) : CatalogTypes.Product {
+    let fixedImage = switch (p.id) {
+      case "coconut-oil"      "/assets/images/coconut-oil.png";
+      case "sesame-oil"       "/assets/images/sesame-oil-1l.png";
+      case "black-mustard-oil" "/assets/images/black-mustard-oil-1l.png";
+      case "yellow-mustard-oil" "/assets/images/yellow-mustard-oil-1l.png";
+      case "buransh-juice"    "/assets/images/burance-juice.png";
+      case "groundnut-oil"    "/assets/images/groundnut-oil.png";
+      case _                  p.imageUrl; // unknown products: leave as-is
+    };
+    let fixedCategory = switch (p.category) {
+      case "oils"  "Oils";
+      case "juice" "Beverages";
+      case other   other; // already correct or unknown
+    };
+    { p with imageUrl = fixedImage; category = fixedCategory };
+  };
+
+  // Migrate any live products whose imageUrl still ends in .jpg or whose category is lowercase.
+  // Called on every canister init so existing state is patched on the next upgrade.
+  public func migrateImagePaths(products : Map.Map<Text, CatalogTypes.Product>) : () {
+    for ((id, p) in products.entries()) {
+      let needsImageFix = p.imageUrl.endsWith(#text ".jpg");
+      let needsCategoryFix = p.category == "oils" or p.category == "juice";
+      if (needsImageFix or needsCategoryFix) {
+        products.add(id, correctProduct(p));
+        Debug.print("[Farm72] Migrated product: " # id);
+      };
+    };
+  };
+
   public func seedDefaultProducts(products : Map.Map<Text, CatalogTypes.Product>) : () {
     if (not products.isEmpty()) return;
 
@@ -103,16 +136,16 @@ module {
         name = "Cold Pressed Coconut Oil";
         shortDescription = "Cold pressed using traditional Kacchi Ghani method. 100% natural and chemical-free oil.";
         longDescription = "Farm72 Cold Pressed Coconut Oil is extracted using the traditional Kacchi Ghani method without any heat or chemicals. Pure, natural, and packed with nutrients for cooking, hair, and skin care.";
-        imageUrl = "/assets/images/coconut-oil.jpg";
-        category = "oils";
+        imageUrl = "/assets/images/coconut-oil.png";
+        category = "Oils";
         benefits = ["100% Pure Cold Pressed", "Rich in Medium Chain Fatty Acids", "No Additives or Preservatives", "Traditional Wood Press Method"];
         variants = [
-          { variantId = "500ml"; variantLabel = "500ml"; price = 299; stock = 100 },
-          { variantId = "1l"; variantLabel = "1L"; price = 549; stock = 100 },
+          { variantId = "500ml"; variantLabel = "500ml"; price = 29900; stock = 100 },
+          { variantId = "1l"; variantLabel = "1L"; price = 54900; stock = 100 },
         ];
         isVisible = true;
         displayOrder = 1;
-        price = 299;
+        price = 29900;
         description = "100% pure cold pressed coconut oil";
       },
       {
@@ -120,16 +153,16 @@ module {
         name = "Cold Pressed Sesame Oil";
         shortDescription = "Cold pressed using traditional Kacchi Ghani method. 100% natural and chemical-free oil.";
         longDescription = "Farm72 Cold Pressed Sesame Oil is rich in antioxidants and healthy fats. Extracted without heat to preserve all natural nutrients. Ideal for cooking and therapeutic use.";
-        imageUrl = "/assets/images/sesame-oil.jpg";
-        category = "oils";
+        imageUrl = "/assets/images/sesame-oil-1l.png";
+        category = "Oils";
         benefits = ["Rich in antioxidants", "Supports heart health", "Anti-inflammatory properties", "No chemicals", "Traditional extraction"];
         variants = [
-          { variantId = "500ml"; variantLabel = "500ml"; price = 279; stock = 100 },
-          { variantId = "1l"; variantLabel = "1L"; price = 499; stock = 100 },
+          { variantId = "500ml"; variantLabel = "500ml"; price = 27900; stock = 100 },
+          { variantId = "1l"; variantLabel = "1L"; price = 49900; stock = 100 },
         ];
         isVisible = true;
         displayOrder = 2;
-        price = 279;
+        price = 27900;
         description = "100% pure cold pressed sesame oil";
       },
       {
@@ -137,16 +170,16 @@ module {
         name = "Cold Pressed Black Mustard Oil";
         shortDescription = "Cold pressed using traditional Kacchi Ghani method. 100% natural and chemical-free oil.";
         longDescription = "Farm72 Cold Pressed Black Mustard Oil is extracted from premium black mustard seeds using the Kacchi Ghani method. Strong, pungent, and full of natural nutrients.";
-        imageUrl = "/assets/images/black-mustard-oil.jpg";
-        category = "oils";
+        imageUrl = "/assets/images/black-mustard-oil-1l.png";
+        category = "Oils";
         benefits = ["Antibacterial properties", "Boosts circulation", "Rich in omega-3", "No chemicals", "Kacchi Ghani method"];
         variants = [
-          { variantId = "500ml"; variantLabel = "500ml"; price = 249; stock = 100 },
-          { variantId = "1l"; variantLabel = "1L"; price = 449; stock = 100 },
+          { variantId = "500ml"; variantLabel = "500ml"; price = 24900; stock = 100 },
+          { variantId = "1l"; variantLabel = "1L"; price = 44900; stock = 100 },
         ];
         isVisible = true;
         displayOrder = 3;
-        price = 249;
+        price = 24900;
         description = "100% pure cold pressed black mustard oil";
       },
       {
@@ -154,16 +187,16 @@ module {
         name = "Cold Pressed Yellow Mustard Oil";
         shortDescription = "Cold pressed using traditional Kacchi Ghani method. 100% natural and chemical-free oil.";
         longDescription = "Farm72 Cold Pressed Yellow Mustard Oil is extracted from premium yellow mustard seeds. Rich in essential fatty acids and natural antioxidants.";
-        imageUrl = "/assets/images/yellow-mustard-oil.jpg";
-        category = "oils";
+        imageUrl = "/assets/images/yellow-mustard-oil-1l.png";
+        category = "Oils";
         benefits = ["Rich in vitamin E", "Supports digestion", "Natural preservative properties", "No additives", "Traditional process"];
         variants = [
-          { variantId = "500ml"; variantLabel = "500ml"; price = 229; stock = 100 },
-          { variantId = "1l"; variantLabel = "1L"; price = 429; stock = 100 },
+          { variantId = "500ml"; variantLabel = "500ml"; price = 22900; stock = 100 },
+          { variantId = "1l"; variantLabel = "1L"; price = 41900; stock = 100 },
         ];
         isVisible = true;
         displayOrder = 4;
-        price = 229;
+        price = 22900;
         description = "100% pure cold pressed yellow mustard oil";
       },
       {
@@ -171,16 +204,16 @@ module {
         name = "Himalayan Buransh Juice";
         shortDescription = "Freshly extracted natural juice, preservative-free and chemical-free.";
         longDescription = "Farm72 Buransh Juice is made from fresh Himalayan Rhododendron flowers (Buransh). Handpicked from the Valley of Flowers, this pure Himalayan juice cools, heals, and nourishes naturally. No preservatives, no chemicals.";
-        imageUrl = "/assets/images/buransh-juice.jpg";
-        category = "juice";
+        imageUrl = "/assets/images/burance-juice.png";
+        category = "Beverages";
         benefits = ["Keeps body cool in summer", "Good for stomach health", "Natural Himalayan flower benefits", "Rich in antioxidants", "No preservatives"];
         variants = [
-          { variantId = "250ml"; variantLabel = "250ml"; price = 139; stock = 100 },
-          { variantId = "500ml"; variantLabel = "500ml"; price = 249; stock = 100 },
+          { variantId = "250ml"; variantLabel = "250ml"; price = 13900; stock = 100 },
+          { variantId = "500ml"; variantLabel = "500ml"; price = 24900; stock = 100 },
         ];
         isVisible = true;
         displayOrder = 5;
-        price = 139;
+        price = 13900;
         description = "Pure Himalayan Buransh flower juice";
       },
       {
@@ -188,16 +221,16 @@ module {
         name = "Cold Pressed Groundnut Oil";
         shortDescription = "Cold pressed using traditional Kacchi Ghani method. 100% natural and chemical-free oil.";
         longDescription = "Farm72 Cold Pressed Groundnut Oil is extracted from premium quality groundnuts using the Kacchi Ghani method. Rich in healthy fats and natural antioxidants, perfect for everyday cooking.";
-        imageUrl = "/assets/images/groundnut-oil.jpg";
-        category = "oils";
+        imageUrl = "/assets/images/groundnut-oil.png";
+        category = "Oils";
         benefits = ["Rich in vitamin E", "Heart healthy fats", "High smoke point for cooking", "No chemicals", "Traditional cold press method"];
         variants = [
-          { variantId = "500ml"; variantLabel = "500ml"; price = 319; stock = 100 },
-          { variantId = "1l"; variantLabel = "1L"; price = 589; stock = 100 },
+          { variantId = "500ml"; variantLabel = "500ml"; price = 25900; stock = 100 },
+          { variantId = "1l"; variantLabel = "1L"; price = 47900; stock = 100 },
         ];
         isVisible = true;
         displayOrder = 6;
-        price = 319;
+        price = 25900;
         description = "100% pure cold pressed groundnut oil";
       },
     ];

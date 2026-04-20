@@ -63,7 +63,7 @@ actor {
   // --- Content (settings, hero slides, FAQ) ---
   let siteSettingsRef = {
     var value : ContentTypes.SiteSettings = {
-      whatsappNumber = "919876543210";
+      whatsappNumber = "917500010488";
       contactEmail = "info@farm72.com";
       footerText = "© 2026 Farm72. All rights reserved.";
       stripeEnabled = false;
@@ -82,6 +82,8 @@ actor {
 
   // --- Seed default data on first initialization ---
   CatalogLib.seedDefaultProducts(products);
+  // Migrate any live products that still have .jpg imageUrls or lowercase category values.
+  CatalogLib.migrateImagePaths(products);
   CouponLib.seedDefaultCoupons(coupons);
   ContentLib.seedDefaultContent(heroSlides, faqItems);
 

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAdmin } from "@/hooks/useAdmin";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -40,7 +41,8 @@ interface ImageUploadState {
 // ── Hero Slides Section ───────────────────────────────────────────────────────
 export function AdminContent() {
   const { actor, isFetching: actorFetching } = useActor(createActor);
-  const enabled = !!actor && !actorFetching;
+  const { isAuthenticated } = useAdmin();
+  const enabled = !!actor && !actorFetching && isAuthenticated;
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<HeroSlideInput>>({});

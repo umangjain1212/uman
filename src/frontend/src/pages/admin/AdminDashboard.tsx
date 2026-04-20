@@ -3,6 +3,7 @@ import type { AnalyticsSummary, Order, TopProduct } from "@/backend.d";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAdmin } from "@/hooks/useAdmin";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -73,7 +74,8 @@ function ErrorBanner({ message }: { message: string }) {
 
 export function AdminDashboard() {
   const { actor, isFetching: actorFetching } = useActor(createActor);
-  const enabled = !!actor && !actorFetching;
+  const { isAuthenticated } = useAdmin();
+  const enabled = !!actor && !actorFetching && isAuthenticated;
 
   const {
     data: analytics,

@@ -73,6 +73,11 @@ export function ProductCard({ product }: ProductCardProps) {
           alt={product.name}
           className="w-full h-full object-cover transition-smooth group-hover:scale-105"
           loading="lazy"
+          onError={(e) => {
+            const target = e.currentTarget;
+            target.onerror = null;
+            target.src = "/assets/images/placeholder.svg";
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/10 to-transparent opacity-0 group-hover:opacity-100 transition-smooth" />
 
@@ -98,23 +103,23 @@ export function ProductCard({ product }: ProductCardProps) {
 
       {/* Content */}
       <div className="flex flex-col flex-1 p-5 gap-2">
-        <button
-          type="button"
-          className="flex items-start justify-between gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-          onClick={handleCardClick}
-          aria-label={`View ${product.name}`}
-        >
-          <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <button
+            type="button"
+            className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+            onClick={handleCardClick}
+            aria-label={`View ${product.name}`}
+          >
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
               {product.category} · {product.weight}
             </p>
-            <h3 className="font-display text-base font-semibold text-foreground leading-snug line-clamp-2">
+            <h3 className="font-display text-base font-semibold text-foreground leading-snug line-clamp-2 min-h-[2.5rem]">
               {product.name}
             </h3>
-          </div>
+          </button>
           {/* Price block — only shown for non-variant products */}
           {!product.variants && (
-            <div className="flex flex-col items-end flex-shrink-0 ml-2">
+            <div className="flex flex-col items-end flex-shrink-0 ml-2 pt-5">
               <p className="text-xs text-muted-foreground line-through leading-none">
                 ₹{product.originalPrice}
               </p>
@@ -123,7 +128,7 @@ export function ProductCard({ product }: ProductCardProps) {
               </p>
             </div>
           )}
-        </button>
+        </div>
 
         {/* Variant size selector with prices */}
         {product.variants && (

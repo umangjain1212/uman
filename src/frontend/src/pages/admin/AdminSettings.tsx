@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { useAdmin } from "@/hooks/useAdmin";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Save, Settings, Shield, ShieldCheck } from "lucide-react";
@@ -26,7 +27,8 @@ const DEFAULT_SETTINGS: SiteSettings = {
 
 export function AdminSettings() {
   const { actor, isFetching: actorFetching } = useActor(createActor);
-  const enabled = !!actor && !actorFetching;
+  const { isAuthenticated } = useAdmin();
+  const enabled = !!actor && !actorFetching && isAuthenticated;
   const queryClient = useQueryClient();
 
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);

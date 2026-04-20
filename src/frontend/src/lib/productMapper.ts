@@ -13,14 +13,14 @@ import type { Product as BackendProduct } from "@/backend.d";
 import type { Product, ProductVariant } from "@/data/products";
 
 export function mapBackendProduct(p: BackendProduct): Product {
-  // Convert paisa bigint → rupees number
-  const price = Number(p.price) / 100;
+  // Backend stores prices as Nat (integer rupees). Convert bigint → number.
+  const price = Math.round(Number(p.price));
   const originalPrice = Math.round(price / 0.75);
 
   const variants: ProductVariant[] | undefined =
     p.variants.length > 0
       ? p.variants.map((v) => {
-          const vPrice = Number(v.price) / 100;
+          const vPrice = Math.round(Number(v.price));
           const vOriginal = Math.round(vPrice / 0.75);
           return {
             size: v.variantLabel,
